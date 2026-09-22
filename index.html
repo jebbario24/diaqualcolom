@@ -2734,6 +2734,14 @@ const I18N = {
     'login.title':'Connexion', 'login.sub':'Accédez à votre espace AquaLC',
     'login.email':'Email', 'login.password':'Mot de passe', 'login.submit':'Se connecter',
     'login.error':'Email ou mot de passe incorrect.',
+    'login.error.email.required':'Veuillez entrer votre adresse email.',
+    'login.error.email.notfound':'Cet email n\'est pas enregistré.',
+    'password.reset.newpassword':'Entrez votre nouveau mot de passe',
+    'password.reset.toolow':'Le mot de passe doit contenir au moins 6 caractères.',
+    'password.reset.success':'Mot de passe réinitialisé avec succès.',
+    'password.reset.sent':'Un lien de réinitialisation a été envoyé à votre email.',
+    'password.reset.error':'Erreur lors de la réinitialisation du mot de passe.',
+    'password.reset.unavailable':'La réinitialisation de mot de passe n\'est pas disponible.',
     'login.demo.hint':'Comptes de démonstration — cliquez pour vous connecter directement :',
     'login.signup.hint':'Pas encore de compte ?', 'login.signup.link':'Choisir un plan et s\'inscrire',
     'public.signup.title':'Créer un compte', 'public.signup.sub':'Choisissez votre plan pour commencer.',
@@ -3148,6 +3156,14 @@ const I18N = {
     'login.title':'Log in', 'login.sub':'Access your AquaLC workspace',
     'login.email':'Email', 'login.password':'Password', 'login.submit':'Log in',
     'login.error':'Incorrect email or password.',
+    'login.error.email.required':'Please enter your email address.',
+    'login.error.email.notfound':'This email is not registered.',
+    'password.reset.newpassword':'Enter your new password',
+    'password.reset.toolow':'Password must be at least 6 characters long.',
+    'password.reset.success':'Password reset successfully.',
+    'password.reset.sent':'A reset link has been sent to your email.',
+    'password.reset.error':'Error resetting password.',
+    'password.reset.unavailable':'Password reset is not available.',
     'login.demo.hint':'Demo accounts — click to log in directly:',
     'login.signup.hint':'No account yet?', 'login.signup.link':'Choose a plan and sign up',
     'public.signup.title':'Create an account', 'public.signup.sub':'Choose your plan to get started.',
@@ -3562,6 +3578,14 @@ const I18N = {
     'login.title':'تسجيل الدخول', 'login.sub':'ادخل إلى مساحتك في أكوالوجيك',
     'login.email':'البريد الإلكتروني', 'login.password':'كلمة المرور', 'login.submit':'تسجيل الدخول',
     'login.error':'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+    'login.error.email.required':'يرجى إدخال عنوان بريدك الإلكتروني.',
+    'login.error.email.notfound':'هذا البريد الإلكتروني غير مسجل.',
+    'password.reset.newpassword':'أدخل كلمة مرورك الجديدة',
+    'password.reset.toolow':'يجب أن تكون كلمة المرور 6 أحرف على الأقل.',
+    'password.reset.success':'تم إعادة تعيين كلمة المرور بنجاح.',
+    'password.reset.sent':'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.',
+    'password.reset.error':'خطأ في إعادة تعيين كلمة المرور.',
+    'password.reset.unavailable':'إعادة تعيين كلمة المرور غير متاحة.',
     'login.demo.hint':'حسابات تجريبية — انقر لتسجيل الدخول مباشرة:',
     'login.signup.hint':'ليس لديك حساب بعد؟', 'login.signup.link':'اختر باقة وأنشئ حسابًا',
     'public.signup.title':'إنشاء حساب', 'public.signup.sub':'اختر باقتك للبدء.',
@@ -3997,6 +4021,7 @@ function viewLogin(){
         <div class="aq-field"><label>E-mail</label><input class="aq-input" id="login-email" type="email" placeholder="vous@exemple.com"></div>
         <div class="aq-field"><label>Mot de passe</label><input class="aq-input" id="login-password" type="password" placeholder="••••••••"></div>
         <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-login">Se connecter</button>
+        <p style="text-align:center;margin-top:12px;font-size:12px;"><span class="aq-link" data-action="forgot-password" style="color:var(--accent);">Mot de passe oublié ?</span></p>
         <p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--aq-silver);">Pas encore de compte ? <span class="aq-link" data-action="public-go" data-view="pricing">Choisir une formule</span></p>
         ${BACKEND.on? '' : `
         <div style="height:1px;background:var(--aq-line-soft);margin:18px 0;"></div>
@@ -4367,6 +4392,36 @@ function bindPublicActions(){
     if(b.dataset.role==='business') STATE.auth.currentBusinessId='b1';
     if(b.dataset.role==='particulier') STATE.auth.currentParticulierId='p1';
     saveState(); render();
+  }));
+
+  // Forgot password flow
+  $$('[data-action="forgot-password"]').forEach(el=> el.addEventListener('click', async ()=>{
+    const email = ($('#login-email').value||'').trim().toLowerCase();
+    if(!email){ alert(t('login.error.email.required')); return; }
+
+    if(BACKEND.on){
+      // In production: call BACKEND.resetPassword(email)
+      if(typeof BACKEND.resetPassword === 'function'){
+        const res = await BACKEND.resetPassword(email);
+        if(res.error){ alert(t('password.reset.error')); return; }
+        alert(t('password.reset.sent'));
+      } else {
+        alert(t('password.reset.unavailable'));
+      }
+    } else {
+      // In local mode: allow password reset with security question
+      const acc = STATE.auth.accounts.admin.email.toLowerCase()===email? STATE.auth.accounts.admin
+               : STATE.auth.accounts.businesses.find(a=>a.email.toLowerCase()===email)
+               || STATE.auth.accounts.particuliers.find(a=>a.email.toLowerCase()===email);
+      if(!acc){ alert(t('login.error.email.notfound')); return; }
+
+      const newPassword = prompt(t('password.reset.newpassword'));
+      if(!newPassword){ return; }
+      if(newPassword.length < 6){ alert(t('password.reset.toolow')); return; }
+      acc.password = newPassword;
+      saveState();
+      alert(t('password.reset.success'));
+    }
   }));
   // Pricing page: choosing a plan sends the visitor straight to signup, that plan
   // pre-selected, starting from a clean draft (any previous abandoned attempt is discarded).
