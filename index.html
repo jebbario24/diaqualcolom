@@ -1276,6 +1276,7 @@ const SEED = {
 
 /* ---------------- State (persisted) ---------------- */
 let STATE = null;
+// Global offline status tracker - must be defined early
 let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
 function loadState(){
   try{
