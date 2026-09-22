@@ -1279,6 +1279,11 @@ let STATE = null;
 // Global offline status tracker - must be defined early
 let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
 let justCompletedCheckout = false;  // Flag to prevent view reset after checkout
+// Signup calls auth.signOut() first to clear any stale session; that fires a
+// SIGNED_OUT event the global onAuthStateChange listener reacts to (landing-page
+// render), which flashes the home page mid-signup before hydrate() logs the new
+// account back in. This flag tells that listener to stay quiet while we know why.
+let suppressAuthOutRender = false;
 function loadState(){
   try{
     const raw = localStorage.getItem('aqualc_v1');
@@ -2021,12 +2026,17 @@ const BACKEND = (function(){
       // est encore connecté, une inscription avec confirmation d'e-mail ne
       // remplacerait pas sa session -> le nouvel arrivant se retrouverait dans
       // l'espace de l'ancien compte.
+      // The signOut() below fires a SIGNED_OUT event; suppress the global
+      // listener's landing-page render for it so signup doesn't flash the
+      // home page before the new account's session takes over.
+      suppressAuthOutRender = true;
       try{ await api.sb.auth.signOut(); }catch(e){}
       api.uid = null; STATE.auth.loggedIn = false;
       const { data, error } = await api.sb.auth.signUp({ email, password, options:{ data: meta } });
-      if(error) return { error };
+      if(error){ suppressAuthOutRender = false; return { error }; }
       // Email confirmation OFF -> session présente : on enchaîne. ON -> pas de session.
-      if(data.session){ await api.hydrate(data.session); return { ok:true }; }
+      if(data.session){ await api.hydrate(data.session); suppressAuthOutRender = false; return { ok:true }; }
+      suppressAuthOutRender = false;
       return { ok:true, needsEmailConfirm:true };
     },
     async signOut(){ try{ await api.sb.auth.signOut(); }catch(e){} api.uid = null; },
@@ -7594,7 +7604,7 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
       if(data && data.session){ await BACKEND.hydrate(data.session); }
       else { STATE.auth.loggedIn = false; }
       BACKEND.sb.auth.onAuthStateChange((evt)=>{
-        if(evt === 'SIGNED_OUT'){ STATE.auth.loggedIn = false; STATE.publicView = 'landing'; render(); }
+        if(evt === 'SIGNED_OUT' && !suppressAuthOutRender){ STATE.auth.loggedIn = false; STATE.publicView = 'landing'; render(); }
       });
       if(checkoutResult === 'success' && STATE.auth.loggedIn){
         STATE.view = STATE.role==='business' ? 'business.abonnement' : 'particulier.abonnement';
