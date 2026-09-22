@@ -4359,9 +4359,13 @@ function bindPublicActions(){
   // pre-selected, starting from a clean draft (any previous abandoned attempt is discarded).
   $$('[data-action="choose-plan"]').forEach(b=> b.addEventListener('click', ()=>{
     signupError=null;
-    STATE.signup = {plan:b.dataset.plan}; // Store plan in STATE, not just signupDraft
-    signupDraft = {plan:b.dataset.plan, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
-    STATE.publicView='signup'; saveState(); render();
+    const planId = b.dataset.plan;
+    STATE.signup = {plan:planId};
+    signupDraft = {plan:planId, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
+    STATE.publicView='signup';
+    // CRITICAL: Store plan in localStorage key so it survives any STATE resets
+    localStorage.setItem('signup-plan-selection', planId);
+    saveState(); render();
   }));
   // Every signup field syncs into signupDraft as the visitor types — unlike other forms in
   // this app, this draft is NOT read back from STATE, because a validation error re-renders
@@ -4389,8 +4393,11 @@ function bindPublicActions(){
 
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
-    // La formule choisie = source de vérité unique: STATE.signup.plan (défini lors du clic sur un bouton de plan)
-    let planId = (STATE.signup && STATE.signup.plan) || signupDraft.plan;
+    // La formule choisie = source de vérité unique: priorité STATE.signup.plan > localStorage backup > dropdown > fallback
+    let planId = (STATE.signup && STATE.signup.plan)
+              || localStorage.getItem('signup-plan-selection')
+              || (($('#signup-plan') && $('#signup-plan').value) || null)
+              || signupDraft.plan;
     let plan = planId ? STATE.plans[planId] : null;
 
     // Validation finale: le plan doit exister
@@ -4416,6 +4423,7 @@ function bindPublicActions(){
       signupError = null; loginError = null;
       signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
       STATE.signup = null;
+      localStorage.removeItem('signup-plan-selection');
       if(res.needsEmailConfirm){ STATE.publicView='login'; loginError=null; backendSignupNotice=true; return render(); }
       saveState(); return render();
     }
@@ -4450,7 +4458,8 @@ function bindPublicActions(){
     STATE.cpsForm.numero = 'CPS-'+yr+'-0001';
     signupError = null; loginError = null;
     signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
-    STATE.signup = null; // Reset plan selection after successful signup
+    STATE.signup = null;
+    localStorage.removeItem('signup-plan-selection'); // Clear backup
     STATE.auth.loggedIn = true;
     STATE.view = plan.role==='admin' ? 'admin.overview' : plan.role==='business' ? 'business.overview' : 'particulier.bassin';
     saveState(); render();
