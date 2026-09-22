@@ -9,18 +9,14 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <!-- ===================================================================
-     BACKEND (Supabase) — optionnel.
-     Les identifiants sont dans un fichier À PART : `config.js`
-     (copiez `config.example.js` en `config.js` et renseignez-le).
-     Sans `config.js`, ou avec url/anonKey vides  -> MODE DÉMO
-     (données locales au navigateur, connexion simulée).
-     Avec les deux renseignés                     -> MODE COMPTE RÉEL.
-     `config.js` n'est PAS suivi par Git : une nouvelle version de
-     index.html ne l'écrase jamais.
+     BACKEND (Supabase) — Configuration
      ================================================================== -->
-<script src="config.js" onerror="void 0"></script>
 <script>
-window.AQUA_SUPABASE = Object.assign({ url: '', anonKey: '' }, window.AQUA_SUPABASE || {});
+window.AQUA_SUPABASE = {
+  url: 'https://nxfoaybjpwmkzjpdifuq.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54Zm9heWJqcHdta3pqcGRpZnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTk1NjAsImV4cCI6MjEwNTU5NTU2MH0.N7n_tRbH15xTTXw2TrRniFtgQ2tuNtbOXAvZ5Z0V3BA',
+  appOrigin: 'https://aqualc.com'
+};
 </script>
 <script src="vendor/supabase-js.js"></script>
 <style>
