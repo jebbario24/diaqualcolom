@@ -874,7 +874,7 @@ function subInactive(acc){ return !!(BACKEND && BACKEND.on && acc && SUB_DEAD_ST
 function subNever(acc){ return !!(BACKEND && BACKEND.on && acc && !acc.stripeStatus); }
 // Essai gratuit d'inscription encore en cours (style Shopify, sans carte).
 // Le plan CPS (paiement au document) n'a pas d'essai.
-function trialActive(acc){ return !!(BACKEND && BACKEND.on && acc && acc.plan !== 'cps' && acc.trialEndsAt && new Date(acc.trialEndsAt) > new Date()); }
+function trialActive(acc){ return !!(acc && acc.plan !== 'cps' && acc.trialEndsAt && new Date(acc.trialEndsAt) > new Date()); }
 function trialDaysLeft(acc){ return acc && acc.trialEndsAt ? Math.max(0, Math.ceil((new Date(acc.trialEndsAt) - new Date())/86400000)) : 0; }
 // Accès manuel accordé par l'admin (client qui paie en espèces / hors Stripe) :
 // stripeStatus vaut 'manual' au lieu d'un statut Stripe réel. manualAccessUntil
@@ -4410,15 +4410,16 @@ function bindPublicActions(){
     if(emailTaken){ signupError='signup.error.email.used'; return render(); }
 
     STATE.signupPlan = planId;
+    const trialEndsAt = new Date(Date.now() + 86400000).toISOString(); // 1 day from now
     if(plan.role==='business'){
       const newId = uid();
-      STATE.businesses.push({id:newId, nom, ville: ville||'—', plan:planId, statut:'actif', inscription:new Date().toISOString().slice(0,10), email, telephone:'', adresse:'', ice:''});
+      STATE.businesses.push({id:newId, nom, ville: ville||'—', plan:planId, statut:'actif', inscription:new Date().toISOString().slice(0,10), email, telephone:'', adresse:'', ice:'', trialEndsAt});
       STATE.auth.accounts.businesses.push({id:uid(), businessId:newId, email, password});
       STATE.auth.currentBusinessId = newId;
       STATE.role = 'business';
     } else {
       const newId = uid();
-      STATE.particuliers.push(normClient({id:newId, nom, ville: ville||'—', businessId:null, statut:'actif', volume:0, plan:planId, email}));
+      STATE.particuliers.push(normClient({id:newId, nom, ville: ville||'—', businessId:null, statut:'actif', volume:0, plan:planId, email, trialEndsAt}));
       STATE.auth.accounts.particuliers.push({id:uid(), particulierId:newId, email, password});
       STATE.auth.currentParticulierId = newId;
       STATE.role = 'particulier';

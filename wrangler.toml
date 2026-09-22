@@ -1,0 +1,16 @@
+name = "aqualc"
+type = "javascript"
+main = "index.html"
+build = { command = "", cwd = "." }
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "aqualc-production"
+routes = [
+  { pattern = "aqualc.com/*", zone_id = "" }
+]
+
+[vars]
+SUPABASE_URL = "https://nxfoaybjpwmkzjpdifuq.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54Zm9heWJqcHdta3pqcGRpZnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTk1NjAsImV4cCI6MjEwNTU5NTU2MH0.N7n_tRbH15xTTXw2TrRniFtgQ2tuNtbOXAvZ5Z0V3BA"
+APP_ORIGIN = "https://aqualc.com"
