@@ -1,0 +1,35 @@
+# Local caches / tooling (not part of the project)
+.cache/
+.config/
+.npm/
+.npm-global/
+.ssh/
+.wget-hsts
+.gitconfig
+
+# Ad-hoc QA screenshots taken during development (not build artifacts)
+screenshots/
+shot_*.png
+
+# Node
+node_modules/
+
+# Secrets — real values live only in the host's environment, never in Git
+.env
+.env.*
+!.env.example
+config.js
+supabase/.temp/
+
+
+# Claude Code harness config (session-local, not project source)
+.claude/
+
+# Local Node tooling for stripe/setup-products.mjs — never needed at deploy time
+package.json
+package-lock.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

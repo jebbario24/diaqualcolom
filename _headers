@@ -1,0 +1,10 @@
+# Cloudflare Pages / Workers static assets — en-têtes de réponse.
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+
+/vendor/*
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+/config.js
+  Cache-Control: no-cache
