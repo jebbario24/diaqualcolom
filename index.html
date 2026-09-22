@@ -4434,6 +4434,7 @@ function bindPublicActions(){
     signupError = null; loginError = null;
     signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
     STATE.auth.loggedIn = true;
+    STATE.view = plan.role==='admin' ? 'admin.overview' : plan.role==='business' ? 'business.overview' : 'particulier.bassin';
     saveState(); render();
   });
 }
