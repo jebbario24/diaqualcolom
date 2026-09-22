@@ -4013,6 +4013,7 @@ function viewSignup(){
         <div class="aq-field">
           <label>Formule</label>
           <select class="aq-input" id="signup-plan">${opt('particulier')}${opt('business')}</select>
+          <input type="hidden" id="signup-plan-initial" value="${planId}">
         </div>
         <div class="aq-field"><label id="signup-nom-label">${isBusiness? t('public.signup.nom.business') : t('public.signup.nom.particulier')}</label><input class="aq-input" id="signup-nom" type="text" value="${esc(signupDraft.nom)}"></div>
         <div class="aq-field"><label>Ville</label><input class="aq-input" id="signup-ville" type="text" placeholder="${t('ph.city')}" value="${esc(signupDraft.ville)}"></div>
@@ -4377,7 +4378,10 @@ function bindPublicActions(){
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
     // La formule choisie = ce que montre le menu déroulant (source de vérité).
-    const planId = ($('#signup-plan') && $('#signup-plan').value) || signupDraft.plan;
+    // Fallback: use initial plan selection if dropdown fails
+    const dropdownValue = $('#signup-plan') && $('#signup-plan').value;
+    const initialValue = $('#signup-plan-initial') && $('#signup-plan-initial').value;
+    const planId = dropdownValue || initialValue || signupDraft.plan;
     const plan = STATE.plans[planId];
     if(!plan){ signupError='signup.error.plan'; return render(); }   // ne crée jamais un compte avec une mauvaise formule
     const nom = (signupDraft.nom||'').trim();
