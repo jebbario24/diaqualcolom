@@ -1,4 +1,4 @@
-name = "aqualc"
+name = "diaqualcolom"
 type = "javascript"
 main = "index.html"
 build = { command = "", cwd = "." }
