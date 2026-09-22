@@ -13,3 +13,14 @@ verify_jwt = true
 # Stripe signs its own requests; there is no Supabase JWT to verify.
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.revoke-expired-access]
+enabled = true
+verify_jwt = false
+import_map = "./functions/revoke-expired-access/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/revoke-expired-access/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/revoke-expired-access/*.html" ]
