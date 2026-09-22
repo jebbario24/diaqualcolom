@@ -4393,11 +4393,21 @@ function bindPublicActions(){
 
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
+    // DEBUG: Log all sources before reading
+    const debugSources = {
+      STATE_signup_plan: STATE.signup && STATE.signup.plan,
+      localStorage: localStorage.getItem('signup-plan-selection'),
+      dropdown: ($('#signup-plan') && $('#signup-plan').value) || null,
+      signupDraft: signupDraft.plan
+    };
+    console.log('DEBUG signup sources:', debugSources);
+
     // La formule choisie = source de vérité unique: priorité STATE.signup.plan > localStorage backup > dropdown > fallback
     let planId = (STATE.signup && STATE.signup.plan)
               || localStorage.getItem('signup-plan-selection')
               || (($('#signup-plan') && $('#signup-plan').value) || null)
               || signupDraft.plan;
+    console.log('DEBUG planId:', planId);
     let plan = planId ? STATE.plans[planId] : null;
 
     // Validation finale: le plan doit exister
