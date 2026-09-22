@@ -880,24 +880,45 @@ function trialDaysLeft(acc){ return acc && acc.trialEndsAt ? Math.max(0, Math.ce
 // Accès manuel accordé par l'admin (client qui paie en espèces / hors Stripe) :
 // stripeStatus vaut 'manual' au lieu d'un statut Stripe réel. manualAccessUntil
 // est optionnel — null/absent = accès manuel illimité jusqu'à révocation par l'admin.
-function manualAccessExpired(acc){ return !!(acc && acc.stripeStatus==='manual' && acc.manualAccessUntil && new Date(acc.manualAccessUntil) <= new Date()); }
+function manualAccessExpired(acc){
+  return !!(acc && acc.has_manual_access === true && acc.manuel_access_expires_at && new Date(acc.manuel_access_expires_at) <= new Date());
+}
 // Check and auto-revoke expired manual access on client side
+// Runs at app initialization and when data is loaded from server
 function checkAndRevokeExpiredAccess(){
+  if(!STATE || (!STATE.businesses && !STATE.particuliers)) return;
+
   let needsRevoke = false;
-  STATE.businesses.forEach(b => {
-    if(manualAccessExpired(b)){
-      b.stripeStatus = null;
-      b.manualAccessUntil = null;
-      needsRevoke = true;
-    }
-  });
-  STATE.particuliers.forEach(p => {
-    if(manualAccessExpired(p)){
-      p.stripeStatus = null;
-      p.manualAccessUntil = null;
-      needsRevoke = true;
-    }
-  });
+  const now = new Date();
+
+  // Check businesses with expired manual access
+  if(Array.isArray(STATE.businesses)){
+    STATE.businesses.forEach(b => {
+      if(b && b.has_manual_access === true && b.manuel_access_expires_at){
+        const expireDate = new Date(b.manuel_access_expires_at);
+        if(expireDate <= now){
+          b.has_manual_access = false;
+          b.manuel_access_expires_at = null;
+          needsRevoke = true;
+        }
+      }
+    });
+  }
+
+  // Check particuliers (clients) with expired manual access
+  if(Array.isArray(STATE.particuliers)){
+    STATE.particuliers.forEach(p => {
+      if(p && p.has_manual_access === true && p.manuel_access_expires_at){
+        const expireDate = new Date(p.manuel_access_expires_at);
+        if(expireDate <= now){
+          p.has_manual_access = false;
+          p.manuel_access_expires_at = null;
+          needsRevoke = true;
+        }
+      }
+    });
+  }
+
   if(needsRevoke){
     saveState();
     showNotification('Accès manuel expiré - compte désactivé', 'warning');
@@ -1458,7 +1479,7 @@ const BACKEND = (function(){
           Object.assign(rec, { id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
             inscription:b.inscription, email:b.email||u.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
             ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, stripeCancelAtEnd:!!b.stripe_cancel_at_period_end,
-            trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, manualAccessUntil:b.manual_access_until||null });
+            trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, has_manual_access:b.has_manual_access||false, manuel_access_expires_at:b.manuel_access_expires_at||null });
           if(!STATE.businesses.some(x=>x.id===b.id)) STATE.businesses.unshift(rec);
           STATE.auth.currentBusinessId = b.id;
           api.myBiz = b.id;
@@ -1489,7 +1510,7 @@ const BACKEND = (function(){
           Object.assign(rec, normClient({ id:p.id, nom:p.nom, ville:p.ville||'—', businessId:p.business_id||null,
             statut:p.statut, volume:p.volume_bassin||0, plan:p.plan, email:u.email||'' }));
           Object.assign(rec, { stripeStatus:p.stripe_subscription_status||null, stripeCancelAtEnd:!!p.stripe_cancel_at_period_end,
-            trialEndsAt:p.trial_ends_at||null, cpsCredits:p.cps_credits||0, manualAccessUntil:p.manual_access_until||null });
+            trialEndsAt:p.trial_ends_at||null, cpsCredits:p.cps_credits||0, has_manual_access:p.has_manual_access||false, manuel_access_expires_at:p.manuel_access_expires_at||null });
           if(!STATE.particuliers.some(x=>x.id===p.id)) STATE.particuliers.unshift(rec);
           STATE.auth.currentParticulierId = p.id;
 
@@ -1502,7 +1523,7 @@ const BACKEND = (function(){
                 Object.assign(brec, { id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
                   inscription:b.inscription, email:b.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
                   ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, stripeCancelAtEnd:!!b.stripe_cancel_at_period_end,
-                  trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, manualAccessUntil:b.manual_access_until||null });
+                  trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, has_manual_access:b.has_manual_access||false, manuel_access_expires_at:b.manuel_access_expires_at||null });
                 if(!STATE.businesses.some(x=>x.id===b.id)) STATE.businesses.unshift(brec);
                 api.myBiz = b.id;
               }
@@ -1572,6 +1593,10 @@ const BACKEND = (function(){
             prods:new Set(STATE.catalogue.filter(c=>c.ownerBiz===catOwner).map(c=>c.id)) };
         }
       }catch(e){ console.warn('catalogue load failed', e); }
+
+      // Auto-revoke expired manual access after loading all data
+      checkAndRevokeExpiredAccess();
+
       return true;
     },
     // Pousse l'identité éditable du compte (nom, ville, plan reste géré par Stripe).
