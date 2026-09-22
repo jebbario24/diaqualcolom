@@ -1276,6 +1276,7 @@ const SEED = {
 
 /* ---------------- State (persisted) ---------------- */
 let STATE = null;
+let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
 function loadState(){
   try{
     const raw = localStorage.getItem('aqualc_v1');
@@ -7613,7 +7614,6 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
   }
 
   // Offline mode detection
-  let isOffline = !navigator.onLine;
   const handleOnline = ()=>{ isOffline = false; if(STATE.auth.loggedIn) render(); };
   const handleOffline = ()=>{ isOffline = true; if(STATE.auth.loggedIn) render(); };
   window.addEventListener('online', handleOnline);
