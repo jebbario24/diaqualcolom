@@ -4365,24 +4365,37 @@ function bindPublicActions(){
   // this app, this draft is NOT read back from STATE, because a validation error re-renders
   // the page (to show the error banner) and the form must not lose what was already typed.
   const signupPlanSel = $('#signup-plan');
-  if(signupPlanSel) signupPlanSel.addEventListener('change', ()=>{
-    signupDraft.plan = signupPlanSel.value;
-    const plan = STATE.plans[signupPlanSel.value];
-    const label = $('#signup-nom-label');
-    if(plan && label) label.textContent = plan.role==='business'? t('public.signup.nom.business') : t('public.signup.nom.particulier');
-  });
+  if(signupPlanSel) {
+    // On form load, ensure dropdown value matches signupDraft.plan
+    if(signupDraft.plan && STATE.plans[signupDraft.plan]){
+      signupPlanSel.value = signupDraft.plan;
+    }
+    // On any change, update signupDraft.plan
+    signupPlanSel.addEventListener('change', ()=>{
+      signupDraft.plan = signupPlanSel.value;
+      const plan = STATE.plans[signupPlanSel.value];
+      const label = $('#signup-nom-label');
+      if(plan && label) label.textContent = plan.role==='business'? t('public.signup.nom.business') : t('public.signup.nom.particulier');
+    });
+  }
   const syncDraft = (id, field)=>{ const el = $('#'+id); if(el) el.addEventListener('input', ()=>{ signupDraft[field] = el.value; }); };
   syncDraft('signup-nom','nom'); syncDraft('signup-ville','ville'); syncDraft('signup-email','email');
   syncDraft('signup-password','password'); syncDraft('signup-password-confirm','passwordConfirm');
 
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
-    // La formule choisie = ce que montre le menu déroulant (source de vérité).
-    // Fallback: use initial plan selection if dropdown fails
-    const dropdownValue = $('#signup-plan') && $('#signup-plan').value;
-    const initialValue = $('#signup-plan-initial') && $('#signup-plan-initial').value;
-    const planId = dropdownValue || initialValue || signupDraft.plan;
-    const plan = STATE.plans[planId];
+    // La formule choisie = ce que montre le menu déroulant (source de vérité unique).
+    const dropdownEl = $('#signup-plan');
+    let planId = dropdownEl ? dropdownEl.value : null;
+    let plan = planId ? STATE.plans[planId] : null;
+
+    // Si le dropdown est vide/invalide, utiliser signupDraft.plan comme fallback
+    if(!plan && signupDraft.plan){
+      planId = signupDraft.plan;
+      plan = STATE.plans[planId];
+    }
+
+    // Validation finale: le plan doit exister
     if(!plan){ signupError='signup.error.plan'; return render(); }   // ne crée jamais un compte avec une mauvaise formule
     const nom = (signupDraft.nom||'').trim();
     const ville = (signupDraft.ville||'').trim();
