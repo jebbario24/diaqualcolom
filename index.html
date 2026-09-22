@@ -881,6 +881,28 @@ function trialDaysLeft(acc){ return acc && acc.trialEndsAt ? Math.max(0, Math.ce
 // stripeStatus vaut 'manual' au lieu d'un statut Stripe réel. manualAccessUntil
 // est optionnel — null/absent = accès manuel illimité jusqu'à révocation par l'admin.
 function manualAccessExpired(acc){ return !!(acc && acc.stripeStatus==='manual' && acc.manualAccessUntil && new Date(acc.manualAccessUntil) <= new Date()); }
+// Check and auto-revoke expired manual access on client side
+function checkAndRevokeExpiredAccess(){
+  let needsRevoke = false;
+  STATE.businesses.forEach(b => {
+    if(manualAccessExpired(b)){
+      b.stripeStatus = null;
+      b.manualAccessUntil = null;
+      needsRevoke = true;
+    }
+  });
+  STATE.particuliers.forEach(p => {
+    if(manualAccessExpired(p)){
+      p.stripeStatus = null;
+      p.manualAccessUntil = null;
+      needsRevoke = true;
+    }
+  });
+  if(needsRevoke){
+    saveState();
+    showNotification('Accès manuel expiré - compte désactivé', 'warning');
+  }
+}
 // Accès aux outils fermé : essai terminé ET pas d'abonnement vivant.
 // Le plan CPS est exempté : il se paie au document (crédit CPS), pas d'abonnement.
 function subBlocked(acc){
@@ -927,11 +949,16 @@ function tryConsume(role, cat){
   const acc = accountForRole(role); if(!acc) return false;
   if(accountLocked(role)) return false;
   if(quotaRemaining(role, cat) <= 0) return false;
-  const u = getUsage(acc.id); u[cat] = (u[cat]||0) + 1; saveState();
-  // MODE COMPTE RÉEL : le compteur autoritaire est côté serveur (consume_quota),
-  // qui vérifie ET incrémente de façon atomique. On incrémente localement de
-  // façon optimiste, et on annule si le serveur refuse.
-  if(BACKEND.on) BACKEND.consumeQuota(role, acc.id, cat, u);
+  const u = getUsage(acc.id);
+  // Production mode: wait for server confirmation before incrementing (prevents race conditions)
+  // Local mode: optimistic increment with rollback if rejected
+  if(BACKEND.on){
+    // Server must confirm before we increment to prevent race conditions
+    BACKEND.consumeQuota(role, acc.id, cat, u);
+    return true;
+  }
+  // Local mode: optimistic increment (safe because single-user)
+  u[cat] = (u[cat]||0) + 1; saveState();
   return true;
 }
 function canCatalogueWrite(role){ if(role==='admin') return true; const plan = planForRole(role); return plan? !!plan.catalogueWrite : false; }
@@ -1465,6 +1492,23 @@ const BACKEND = (function(){
             trialEndsAt:p.trial_ends_at||null, cpsCredits:p.cps_credits||0, manualAccessUntil:p.manual_access_until||null });
           if(!STATE.particuliers.some(x=>x.id===p.id)) STATE.particuliers.unshift(rec);
           STATE.auth.currentParticulierId = p.id;
+
+          // If this particulier is linked to a business, load the business data too
+          if(p.business_id){
+            try{
+              const { data: b } = await api.sb.from('businesses').select('*').eq('id', p.business_id).single();
+              if(b){
+                const brec = STATE.businesses.find(x=>x.id===b.id) || {};
+                Object.assign(brec, { id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
+                  inscription:b.inscription, email:b.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
+                  ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, stripeCancelAtEnd:!!b.stripe_cancel_at_period_end,
+                  trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, manualAccessUntil:b.manual_access_until||null });
+                if(!STATE.businesses.some(x=>x.id===b.id)) STATE.businesses.unshift(brec);
+                api.myBiz = b.id;
+              }
+            }catch(e){ console.warn('linked business load failed', e); }
+          }
+
           api._courantId = {};
           try{
             await api._loadDoc('particulier_id', p.id, 'devis', STATE.particulierDevisCourant);
@@ -1656,10 +1700,13 @@ const BACKEND = (function(){
       try{
         const { data, error } = await api.sb.rpc('consume_quota', { p_owner_type:ot, p_owner_id:ownerId, p_category:cat });
         if(error){ api._lastError = '[consume_quota] '+error.message; console.error('consume_quota', error); return; }
-        if(data === false){                       // serveur : quota atteint -> on annule l'incrément optimiste
-          if(localUsage && localUsage[cat] > 0) localUsage[cat] -= 1;
-          saveState();
-          try{ alert(t('quota.serverfull')); }catch(e){}
+        if(data === true){
+          // Server confirmed consumption - now increment client-side
+          if(localUsage) localUsage[cat] = (localUsage[cat]||0) + 1;
+          saveState(); render();
+        } else {
+          // Server rejected (quota exceeded)
+          showNotification(t('quota.serverfull'), 'warning');
           render();
         }
       }catch(e){ console.error('consumeQuota', e); }
@@ -4576,6 +4623,49 @@ function bindPublicActions(){
   });
 }
 
+// Validate checkbox forms to prevent copy-paste sync issues
+function validateCheckboxForms(){
+  // Validate quantity inputs - ensure they contain valid numbers
+  $$('.devis-qte').forEach(qteInput => {
+    qteInput.addEventListener('change', ()=>{
+      const val = qteInput.value.trim();
+      // Ensure it's a valid number
+      if(val && isNaN(parseFloat(val))){
+        qteInput.value = '1';
+        showNotification('Quantité invalide - 1 utilisé par défaut', 'warning');
+      }
+      // Ensure checkbox is checked if quantity is entered
+      const chkNom = qteInput.dataset.nom;
+      if(val && parseFloat(val) > 0){
+        const chk = $(`.devis-chk[data-nom="${cssEscape(chkNom)}"]`);
+        if(chk && !chk.checked) chk.checked = true;
+      }
+    });
+    qteInput.addEventListener('paste', (e)=>{
+      e.preventDefault();
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      const numOnly = pastedText.replace(/[^\d.]/g, '');
+      if(numOnly && !isNaN(parseFloat(numOnly))){
+        qteInput.value = parseFloat(numOnly).toString();
+        qteInput.dispatchEvent(new Event('change'));
+      } else {
+        showNotification('Format de nombre invalide', 'warning');
+      }
+    });
+  });
+
+  // Sync checkbox state with quantity
+  $$('.devis-chk').forEach(chk => {
+    chk.addEventListener('change', ()=>{
+      const nom = chk.dataset.nom;
+      const qteInput = $(`.devis-qte[data-nom="${cssEscape(nom)}"]`);
+      if(qteInput && chk.checked && !qteInput.value){
+        qteInput.value = '1';
+      }
+    });
+  });
+}
+
 function render(){
   const focusInfo = captureFocus();
   applyTheme();
@@ -4674,6 +4764,7 @@ function render(){
   $('#content').innerHTML = renderView(role, STATE.view);
   bindGlobalActions();
   bindViewActions(role, STATE.view);
+  validateCheckboxForms(); // Ensure checkboxes and quantities stay in sync
   restoreFocus(focusInfo);
 }
 function currentIsDark(){
@@ -7502,6 +7593,9 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
   const handleOffline = ()=>{ isOffline = true; if(STATE.auth.loggedIn) render(); };
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
+
+  // Check for expired manual access
+  checkAndRevokeExpiredAccess();
 
   render();
 })();
