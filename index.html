@@ -869,9 +869,9 @@ function planForRole(role){ const acc = accountForRole(role); return acc? STATE.
 // jusqu'à un nouveau paiement. `past_due` reste toléré (période de grâce Stripe).
 var SUB_DEAD_STATUSES = ['canceled','unpaid','incomplete_expired'];
 // Abonnement terminé (résilié / impayé / expiré).
-function subInactive(acc){ return !!(BACKEND && BACKEND.on && acc && SUB_DEAD_STATUSES.indexOf(acc.stripeStatus) >= 0); }
+function subInactive(acc){ return !!(acc && SUB_DEAD_STATUSES.indexOf(acc.stripeStatus) >= 0); }
 // Compte sans abonnement Stripe vivant (jamais souscrit, ou résilié).
-function subNever(acc){ return !!(BACKEND && BACKEND.on && acc && !acc.stripeStatus); }
+function subNever(acc){ return !!(acc && !acc.stripeStatus && (!BACKEND || !BACKEND.on || acc.stripeStatus === undefined)); }
 // Essai gratuit d'inscription encore en cours (style Shopify, sans carte).
 // Le plan CPS (paiement au document) n'a pas d'essai.
 function trialActive(acc){ return !!(acc && acc.plan !== 'cps' && acc.trialEndsAt && new Date(acc.trialEndsAt) > new Date()); }
@@ -1325,10 +1325,13 @@ function normalizeState(){
   // Migrate accounts from the old Starter/Pro/Enterprise grid (or fill in a default) to the new plan ids.
   STATE.businesses.forEach(b=>{ if(PLAN_MIGRATE[b.plan]) b.plan = PLAN_MIGRATE[b.plan]; if(!STATE.plans[b.plan] || STATE.plans[b.plan].role!=='business') b.plan = 'installateur'; });
   STATE.businesses.forEach(normBoutique); // online-store config, added after launch
+  // Initialize trial fields for accounts created before phase 4
+  STATE.businesses.forEach(b=>{ if(b.trialEndsAt===undefined) b.trialEndsAt=null; });
   STATE.particuliers.forEach(p=>{ if(!STATE.plans[p.plan] || STATE.plans[p.plan].role!=='particulier') p.plan = 'proprietaire'; });
   // Client follow-up fields (phone, description, payment, step tasks, follow-up log) were
   // added after launch — backfill them on records saved before, so the detail panel is safe.
   STATE.particuliers.forEach(normClient);
+  STATE.particuliers.forEach(p=>{ if(p.trialEndsAt===undefined) p.trialEndsAt=null; });
 }
 // Ensures every client record carries the follow-up fields the detail panel reads.
 function normClient(p){
@@ -1408,9 +1411,11 @@ const BACKEND = (function(){
           api.myBiz = b.id;
           // --- Phase 4 · morceau 2 : fiches clients de ce Business ---
           try{
-            const { data: clients } = await api.sb.from('particuliers').select('*').eq('business_id', b.id);
+            // Load clients with pagination (max 1000) to avoid performance issues with large customer bases
+            const { data: clients } = await api.sb.from('particuliers').select('*').eq('business_id', b.id).range(0, 999);
             STATE.particuliers = (clients||[]).map(api._clientFromDb);
             api._clientSnap = new Set(STATE.particuliers.map(c=>c.id));
+            // TODO: Implement lazy loading UI for businesses with >1000 clients
           }catch(e){ console.warn('clients load failed', e); }
           // --- Phase 4 · morceau 3 : modèle + devis courant + CPS ---
           api._courantId = {};
@@ -1533,7 +1538,8 @@ const BACKEND = (function(){
           if(b) api._chk(await api.sb.from('businesses').update({ nom:b.nom, ville:b.ville, adresse:b.adresse||null, telephone:b.telephone||null, ice:b.ice||null }).eq('profile_id', api.uid), 'businesses.update');
         } else if(STATE.role === 'particulier'){
           const p = STATE.particuliers.find(x=>x.id===STATE.auth.currentParticulierId);
-          if(p) api._chk(await api.sb.from('particuliers').update({ nom:p.nom, ville:p.ville, volume_bassin:p.volume||0 }).eq('profile_id', api.uid), 'particuliers.self.update');
+          // Verify particulier belongs to current user before updating
+          if(p && p.id === STATE.auth.currentParticulierId) api._chk(await api.sb.from('particuliers').update({ nom:p.nom, ville:p.ville, volume_bassin:p.volume||0 }).eq('profile_id', api.uid), 'particuliers.self.update');
         }
         await api.syncCatalogue();
         await api.syncClients();
@@ -4393,21 +4399,11 @@ function bindPublicActions(){
 
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
-    // DEBUG: Log all sources before reading
-    const debugSources = {
-      STATE_signup_plan: STATE.signup && STATE.signup.plan,
-      localStorage: localStorage.getItem('signup-plan-selection'),
-      dropdown: ($('#signup-plan') && $('#signup-plan').value) || null,
-      signupDraft: signupDraft.plan
-    };
-    console.log('DEBUG signup sources:', debugSources);
-
     // La formule choisie = source de vérité unique: priorité STATE.signup.plan > localStorage backup > dropdown > fallback
     let planId = (STATE.signup && STATE.signup.plan)
               || localStorage.getItem('signup-plan-selection')
               || (($('#signup-plan') && $('#signup-plan').value) || null)
               || signupDraft.plan;
-    console.log('DEBUG planId:', planId);
     let plan = planId ? STATE.plans[planId] : null;
 
     // Validation finale: le plan doit exister
@@ -4418,7 +4414,9 @@ function bindPublicActions(){
     const password = signupDraft.password||'';
     const confirm = signupDraft.passwordConfirm||'';
     if(!nom){ signupError='signup.error.nom.required'; return render(); }
-    if(!email || !email.includes('@')){ signupError='signup.error.email.invalid'; return render(); }
+    // Improved email validation: check for proper format, not just @ presence
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!email || !emailRegex.test(email)){ signupError='signup.error.email.invalid'; return render(); }
     if(!password || password.length<6){ signupError='signup.error.password.short'; return render(); }
     if(password!==confirm){ signupError='signup.error.password.mismatch'; return render(); }
 
