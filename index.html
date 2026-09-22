@@ -4358,7 +4358,9 @@ function bindPublicActions(){
   // Pricing page: choosing a plan sends the visitor straight to signup, that plan
   // pre-selected, starting from a clean draft (any previous abandoned attempt is discarded).
   $$('[data-action="choose-plan"]').forEach(b=> b.addEventListener('click', ()=>{
-    signupError=null; signupDraft = {plan:b.dataset.plan, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
+    signupError=null;
+    STATE.signup = {plan:b.dataset.plan}; // Store plan in STATE, not just signupDraft
+    signupDraft = {plan:b.dataset.plan, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
     STATE.publicView='signup'; saveState(); render();
   }));
   // Every signup field syncs into signupDraft as the visitor types — unlike other forms in
@@ -4366,12 +4368,15 @@ function bindPublicActions(){
   // the page (to show the error banner) and the form must not lose what was already typed.
   const signupPlanSel = $('#signup-plan');
   if(signupPlanSel) {
-    // On form load, ensure dropdown value matches signupDraft.plan
-    if(signupDraft.plan && STATE.plans[signupDraft.plan]){
-      signupPlanSel.value = signupDraft.plan;
+    // Ensure dropdown reflects the selected plan (source of truth is STATE.signup.plan)
+    const selectedPlan = (STATE.signup && STATE.signup.plan) || signupDraft.plan;
+    if(selectedPlan && STATE.plans[selectedPlan]){
+      signupPlanSel.value = selectedPlan;
     }
-    // On any change, update signupDraft.plan
+    // On any change, update both STATE.signup and signupDraft
     signupPlanSel.addEventListener('change', ()=>{
+      if(!STATE.signup) STATE.signup = {};
+      STATE.signup.plan = signupPlanSel.value;
       signupDraft.plan = signupPlanSel.value;
       const plan = STATE.plans[signupPlanSel.value];
       const label = $('#signup-nom-label');
@@ -4384,16 +4389,9 @@ function bindPublicActions(){
 
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
-    // La formule choisie = ce que montre le menu déroulant (source de vérité unique).
-    const dropdownEl = $('#signup-plan');
-    let planId = dropdownEl ? dropdownEl.value : null;
+    // La formule choisie = source de vérité unique: STATE.signup.plan (défini lors du clic sur un bouton de plan)
+    let planId = (STATE.signup && STATE.signup.plan) || signupDraft.plan;
     let plan = planId ? STATE.plans[planId] : null;
-
-    // Si le dropdown est vide/invalide, utiliser signupDraft.plan comme fallback
-    if(!plan && signupDraft.plan){
-      planId = signupDraft.plan;
-      plan = STATE.plans[planId];
-    }
 
     // Validation finale: le plan doit exister
     if(!plan){ signupError='signup.error.plan'; return render(); }   // ne crée jamais un compte avec une mauvaise formule
@@ -4417,6 +4415,7 @@ function bindPublicActions(){
       }
       signupError = null; loginError = null;
       signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
+      STATE.signup = null;
       if(res.needsEmailConfirm){ STATE.publicView='login'; loginError=null; backendSignupNotice=true; return render(); }
       saveState(); return render();
     }
@@ -4451,6 +4450,7 @@ function bindPublicActions(){
     STATE.cpsForm.numero = 'CPS-'+yr+'-0001';
     signupError = null; loginError = null;
     signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
+    STATE.signup = null; // Reset plan selection after successful signup
     STATE.auth.loggedIn = true;
     STATE.view = plan.role==='admin' ? 'admin.overview' : plan.role==='business' ? 'business.overview' : 'particulier.bassin';
     saveState(); render();
