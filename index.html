@@ -1517,7 +1517,8 @@ const BACKEND = (function(){
           const rec = STATE.particuliers.find(x=>x.id===p.id) || {};
           Object.assign(rec, normClient({ id:p.id, nom:p.nom, ville:p.ville||'—', businessId:p.business_id||null,
             statut:p.statut, volume:p.volume_bassin||0, plan:p.plan, email:u.email||'' }));
-          Object.assign(rec, { stripeStatus:p.stripe_subscription_status||null, stripeCancelAtEnd:!!p.stripe_cancel_at_period_end,
+          Object.assign(rec, { telephone:p.telephone||'', adresse:p.adresse||'',
+            stripeStatus:p.stripe_subscription_status||null, stripeCancelAtEnd:!!p.stripe_cancel_at_period_end,
             trialEndsAt:p.trial_ends_at||null, cpsCredits:p.cps_credits||0, has_manual_access:p.has_manual_access||false, manuel_access_expires_at:p.manuel_access_expires_at||null });
           if(!STATE.particuliers.some(x=>x.id===p.id)) STATE.particuliers.unshift(rec);
           STATE.auth.currentParticulierId = p.id;
@@ -1642,7 +1643,7 @@ const BACKEND = (function(){
         } else if(STATE.role === 'particulier'){
           const p = STATE.particuliers.find(x=>x.id===STATE.auth.currentParticulierId);
           // Verify particulier belongs to current user before updating
-          if(p && p.id === STATE.auth.currentParticulierId) api._chk(await api.sb.from('particuliers').update({ nom:p.nom, ville:p.ville, volume_bassin:p.volume||0 }).eq('profile_id', api.uid), 'particuliers.self.update');
+          if(p && p.id === STATE.auth.currentParticulierId) api._chk(await api.sb.from('particuliers').update({ nom:p.nom, ville:p.ville, telephone:p.telephone||null, adresse:p.adresse||null, volume_bassin:p.volume||0 }).eq('profile_id', api.uid), 'particuliers.self.update');
         }
         await api.syncCatalogue();
         await api.syncClients();
@@ -7388,6 +7389,7 @@ function viewAccountSettings(role){
   const acc = authAccountForRole(role);
   const emailOk = acctEmailMsg==='ok', pwdOk = acctPwdMsg==='ok', pwdErr = acctPwdMsg && acctPwdMsg!=='ok';
   const biz = role==='business' ? accountForRole('business') : null;
+  const part = role==='particulier' ? accountForRole('particulier') : null;
   const identityCard = biz ? `
   <div class="card" style="margin-bottom:18px;">
     <div class="result-head" style="margin-bottom:6px;"><div class="ic">${ic('i-building')}</div><div class="card-title">${t('account.identity.title')}</div></div>
@@ -7402,6 +7404,20 @@ function viewAccountSettings(role){
       <div class="field"><label>${t('account.identity.adresse')}</label><input class="input" id="acct-biz-adr" value="${esc(biz.adresse||'')}" placeholder="${t('account.identity.adresse.ph')}"></div>
       <div class="field"><label>${t('account.identity.preview')}</label>
         <div class="callout" style="font-family:var(--font-mono);font-size:11.5px;">${esc(composeFooter({...biz, email:acc.email}))||'—'}</div></div>
+      <button class="btn btn-primary" style="align-self:flex-start;" data-action="save-identity">${ic('i-check')} ${t('account.save')}</button>
+    </div>
+  </div>` : part ? `
+  <div class="card" style="margin-bottom:18px;">
+    <div class="result-head" style="margin-bottom:6px;"><div class="ic">${ic('i-user')}</div><div class="card-title">${t('account.identity.title')}</div></div>
+    <div class="card-sub" style="margin-bottom:14px;">${t('account.identity.sub')}</div>
+    ${acctIdentityMsg==='ok'? `<div class="callout ok" style="margin-bottom:14px;">${ic('i-check')}<div>${t('account.identity.saved')}</div></div>`:''}
+    <div class="form-grid">
+      <div class="field"><label>${t('account.identity.name')}</label><input class="input" id="acct-part-nom" value="${esc(part.nom||'')}"></div>
+      <div class="input-row">
+        <div class="field"><label>${t('account.identity.tel')}</label><input class="input" id="acct-part-tel" type="tel" value="${esc(part.telephone||'')}" placeholder="${t('ph.phone')}"></div>
+        <div class="field"><label>Ville</label><input class="input" id="acct-part-ville" value="${esc(part.ville||'')}" placeholder="${t('ph.city')}"></div>
+      </div>
+      <div class="field"><label>${t('account.identity.adresse')}</label><input class="input" id="acct-part-adr" value="${esc(part.adresse||'')}" placeholder="${t('account.identity.adresse.ph')}"></div>
       <button class="btn btn-primary" style="align-self:flex-start;" data-action="save-identity">${ic('i-check')} ${t('account.save')}</button>
     </div>
   </div>` : '';
@@ -7468,6 +7484,17 @@ function bindAccountSettings(role){
   });
   const saveIdBtn = $('[data-action="save-identity"]');
   if(saveIdBtn) saveIdBtn.addEventListener('click', ()=>{
+    if(role==='particulier'){
+      const p = accountForRole('particulier'); if(!p) return;
+      const nom = ($('#acct-part-nom').value||'').trim();
+      if(!nom){ $('#acct-part-nom').focus(); return; }
+      p.nom = nom;
+      p.telephone = ($('#acct-part-tel').value||'').trim();
+      p.ville = ($('#acct-part-ville').value||'').trim();
+      p.adresse = ($('#acct-part-adr').value||'').trim();
+      acctIdentityMsg = 'ok'; saveState(); render();
+      return;
+    }
     const b = accountForRole('business'); if(!b) return;
     const nom = ($('#acct-biz-nom').value||'').trim();
     if(!nom){ $('#acct-biz-nom').focus(); return; }
