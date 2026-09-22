@@ -1278,6 +1278,7 @@ const SEED = {
 let STATE = null;
 // Global offline status tracker - must be defined early
 let isOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
+let justCompletedCheckout = false;  // Flag to prevent view reset after checkout
 function loadState(){
   try{
     const raw = localStorage.getItem('aqualc_v1');
@@ -4703,7 +4704,8 @@ function render(){
   const role = STATE.role;
   const navGroups = getNavForRole(role);
   const navKeys = navGroups.flatMap(g=>g.items.map(it=>it.key));
-  if(!PAGE_META[STATE.view] || !navKeys.includes(STATE.view)){
+  // Don't reset view right after checkout - allow time for data to load
+  if(!justCompletedCheckout && (!PAGE_META[STATE.view] || !navKeys.includes(STATE.view))){
     STATE.view = role+'.'+ (role==='admin'?'overview':role==='business'?'overview':'bassin');
   }
   // Abonnement inactif : on ne laisse accéder qu'à la page abonnement / compte.
@@ -7597,13 +7599,15 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
       if(checkoutResult === 'success' && STATE.auth.loggedIn){
         STATE.view = STATE.role==='business' ? 'business.abonnement' : 'particulier.abonnement';
         checkoutFlash = 'success';
+        justCompletedCheckout = true;
         // Le webhook peut mettre 1-2 s : on recharge l'état une fois après un court délai.
-        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); } }catch(e){} }, 3000);
+        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); justCompletedCheckout = false; } }catch(e){} }, 3000);
       } else if(checkoutResult === 'cps' && STATE.auth.loggedIn){
         // Paiement CPS à l'usage : on revient sur l'écran CPS et on recharge le solde de crédits.
         if(STATE.role === 'particulier') STATE.view = 'particulier.cps';
         checkoutFlash = 'cps';
-        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); } }catch(e){} }, 3000);
+        justCompletedCheckout = true;
+        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); justCompletedCheckout = false; } }catch(e){} }, 3000);
       } else if(checkoutResult === 'cancel'){
         checkoutFlash = 'cancel';
       }
@@ -7612,6 +7616,9 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
         STATE.view = STATE.role==='business' ? 'business.abonnement' : 'particulier.abonnement';
       }
     }catch(e){ console.error('backend boot failed', e); }
+  } else {
+    // If backend is not available, still clear checkout and render
+    if(checkoutResult || qp.get('view')) saveState();
   }
 
   // Offline mode detection
