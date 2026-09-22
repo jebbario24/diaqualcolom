@@ -1352,6 +1352,13 @@ function fmtPhone(s){
   const n = String(s||'').replace(/\s+/g,'');
   return /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g,'$1 ').trim() : String(s||'');
 }
+// Format numbers with thousand separators (1000 -> "1 000")
+function fmtNumber(n, decimals=0){
+  if(n===null || n===undefined) return '';
+  const num = parseFloat(n);
+  if(isNaN(num)) return String(n);
+  return num.toLocaleString('fr-FR', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+}
 function saveState(){
   const be = (typeof BACKEND !== 'undefined' && BACKEND.on) ? BACKEND : null;
   try{ localStorage.setItem(be && be.uid ? 'aqualc_'+be.uid : 'aqualc_v1', JSON.stringify(STATE)); }
@@ -2401,7 +2408,7 @@ const I18N = {
     'page.particulier.devis.t':'Demander un devis', 'page.particulier.devis.s':'Transmettez votre projet à un professionnel',
     'page.particulier.devis.self.t':'Mon devis', 'page.particulier.devis.self.s':'Générez votre devis à partir des produits proposés',
     'page.particulier.cps.t':'Mon CPS', 'page.particulier.cps.s':'Cahier des prescriptions spéciales de votre projet',
-    'status.actif':'actif', 'status.prospect':'prospect', 'status.inactif':'inactif', 'status.terminé':'terminé', 'status.en attente':'en attente', 'status.suspendu':'suspendu', 'status.indépendant':'indépendant', 'status.invité':'invité',
+    'status.actif':'actif', 'status.prospect':'prospect', 'status.inactif':'inactif', 'status.terminé':'terminé', 'status.en attente':'en attente', 'status.suspendu':'suspendu', 'status.indépendant':'indépendant', 'status.invité':'invité', 'status.offline':'Hors ligne',
     'th.societe':'Société', 'th.ville':'Ville', 'th.plan':'Plan', 'th.clients':'Clients', 'th.statut':'Statut', 'th.inscription':'Inscription',
     'th.nom':'Nom', 'th.rattache':'Rattaché à', 'th.volume':'Volume bassin', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Accès',
     'btn.suspend':'Suspendre', 'btn.reactivate':'Réactiver', 'btn.validate':'Valider',
@@ -2818,7 +2825,7 @@ const I18N = {
     'page.particulier.devis.t':'Request a quote', 'page.particulier.devis.s':'Send your project to a professional',
     'page.particulier.devis.self.t':'My quote', 'page.particulier.devis.self.s':'Generate your quote from the offered products',
     'page.particulier.cps.t':'My specs (CPS)', 'page.particulier.cps.s':'Special technical specifications for your project',
-    'status.actif':'active', 'status.prospect':'prospect', 'status.inactif':'inactive', 'status.terminé':'completed', 'status.en attente':'pending', 'status.suspendu':'suspended', 'status.indépendant':'independent', 'status.invité':'invited',
+    'status.actif':'active', 'status.prospect':'prospect', 'status.inactif':'inactive', 'status.terminé':'completed', 'status.en attente':'pending', 'status.suspendu':'suspended', 'status.indépendant':'independent', 'status.invité':'invited', 'status.offline':'Offline',
     'th.societe':'Company', 'th.ville':'City', 'th.plan':'Plan', 'th.clients':'Clients', 'th.statut':'Status', 'th.inscription':'Signed up',
     'th.nom':'Name', 'th.rattache':'Linked to', 'th.volume':'Pool volume', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Access',
     'btn.suspend':'Suspend', 'btn.reactivate':'Reactivate', 'btn.validate':'Approve',
@@ -3232,7 +3239,7 @@ const I18N = {
     'page.particulier.devis.t':'طلب عرض سعر', 'page.particulier.devis.s':'أرسل مشروعك إلى محترف',
     'page.particulier.devis.self.t':'عرض سعري', 'page.particulier.devis.self.s':'أنشئ عرض سعرك انطلاقًا من المنتجات المقترحة',
     'page.particulier.cps.t':'دفتر شروطي', 'page.particulier.cps.s':'دفتر الشروط الخاصة بمشروعك',
-    'status.actif':'نشط', 'status.prospect':'عميل محتمل', 'status.inactif':'غير نشط', 'status.terminé':'منتهٍ', 'status.en attente':'قيد الانتظار', 'status.suspendu':'موقوف', 'status.indépendant':'مستقل', 'status.invité':'مدعو',
+    'status.actif':'نشط', 'status.prospect':'عميل محتمل', 'status.inactif':'غير نشط', 'status.terminé':'منتهٍ', 'status.en attente':'قيد الانتظار', 'status.suspendu':'موقوف', 'status.indépendant':'مستقل', 'status.invité':'مدعو', 'status.offline':'غير متصل',
     'th.societe':'الشركة', 'th.ville':'المدينة', 'th.plan':'الباقة', 'th.clients':'العملاء', 'th.statut':'الحالة', 'th.inscription':'تاريخ التسجيل',
     'th.nom':'الاسم', 'th.rattache':'مرتبط بـ', 'th.volume':'حجم المسبح', 'th.date':'التاريخ', 'th.note':'ملاحظة', 'th.acces':'الوصول',
     'btn.suspend':'إيقاف', 'btn.reactivate':'إعادة تفعيل', 'btn.validate':'الموافقة',
@@ -4397,6 +4404,23 @@ function bindPublicActions(){
   syncDraft('signup-nom','nom'); syncDraft('signup-ville','ville'); syncDraft('signup-email','email');
   syncDraft('signup-password','password'); syncDraft('signup-password-confirm','passwordConfirm');
 
+  // Real-time password confirmation validation
+  const pwdEl = $('#signup-password');
+  const pwdConfEl = $('#signup-password-confirm');
+  if(pwdEl && pwdConfEl){
+    const validatePwd = ()=>{
+      if(signupDraft.password && signupDraft.passwordConfirm && signupDraft.password !== signupDraft.passwordConfirm){
+        pwdConfEl.style.borderColor = 'var(--danger)';
+        pwdConfEl.title = t('signup.error.password.mismatch');
+      } else {
+        pwdConfEl.style.borderColor = '';
+        pwdConfEl.title = '';
+      }
+    };
+    pwdEl.addEventListener('input', validatePwd);
+    pwdConfEl.addEventListener('input', validatePwd);
+  }
+
   const signupBtn = $('[data-action="do-signup"]');
   if(signupBtn) signupBtn.addEventListener('click', async ()=>{
     // La formule choisie = source de vérité unique: priorité STATE.signup.plan > localStorage backup > dropdown > fallback
@@ -4441,6 +4465,9 @@ function bindPublicActions(){
       || STATE.auth.accounts.particuliers.some(a=>a.email.toLowerCase()===email);
     if(emailTaken){ signupError='signup.error.email.used'; return render(); }
 
+    // Disable button during submission in local mode
+    signupBtn.disabled = true;
+
     STATE.signupPlan = planId;
     const trialEndsAt = new Date(Date.now() + 86400000).toISOString(); // 1 day from now
     if(plan.role==='business'){
@@ -4470,6 +4497,7 @@ function bindPublicActions(){
     localStorage.removeItem('signup-plan-selection'); // Clear backup
     STATE.auth.loggedIn = true;
     STATE.view = plan.role==='admin' ? 'admin.overview' : plan.role==='business' ? 'business.overview' : 'particulier.bassin';
+    signupBtn.disabled = false; // Re-enable button after successful signup
     saveState(); render();
   });
 }
@@ -4557,6 +4585,7 @@ function render(){
           <div class="topbar-sub">${t(pageMetaFor(STATE.view)[1])}</div>
         </div>
         <div class="topbar-right">
+          ${isOffline ? `<div class="status-badge" style="background:var(--warning-soft);color:var(--warning);padding:4px 8px;border-radius:var(--radius);font-size:12px;font-weight:500;">${t('status.offline')}</div>` : ''}
           <div class="user-chip">
             <div class="user-avatar">${esc(displayInitials(role))}</div>
             <div>
@@ -4593,7 +4622,11 @@ function bindGlobalActions(){
   $$('[data-action="switch-role-plan"]').forEach(el=> el.addEventListener('click', ()=>{ acctEmailMsg=null; acctPwdMsg=null; testPlanAccess(el.dataset.plan); }));
   $$('[data-action="switch-lang"]').forEach(el=> el.addEventListener('click', ()=> setLang(el.dataset.lang)));
   const tt = $('[data-action="toggle-theme"]'); if(tt) tt.addEventListener('click', toggleTheme);
-  const setMenu = open=>{ const sb=$('#sidebar'), sc=$('#sidebar-scrim'); if(sb) sb.classList.toggle('open', open); if(sc) sc.classList.toggle('show', open); };
+  const setMenu = open=>{ const sb=$('#sidebar'), sc=$('#sidebar-scrim'); if(sb) sb.classList.toggle('open', open); if(sc) sc.classList.toggle('show', open); localStorage.setItem('sidebar-open', open); };
+  // Restore sidebar state from localStorage
+  const sidebarOpen = localStorage.getItem('sidebar-open') !== 'false';
+  setMenu(sidebarOpen);
+
   const mb = $('[data-action="toggle-menu"]'); if(mb) mb.addEventListener('click', ()=> setMenu(!$('#sidebar').classList.contains('open')));
   $$('[data-action="close-menu"]').forEach(el=> el.addEventListener('click', ()=> setMenu(false)));
   const lo = $('[data-action="logout"]'); if(lo) lo.addEventListener('click', doLogout);
@@ -5347,6 +5380,10 @@ function bindBusinessClients(){
     const nom = $('#nc-nom').value.trim(); if(!nom) return;
     STATE.particuliers.push(normClient({id:uid(), nom, ville:$('#nc-ville').value.trim()||'—', telephone:$('#nc-tel').value.trim(), email:($('#nc-email')?.value||'').trim(), businessId:currentBusinessId(), statut:'actif', volume:parseFloat($('#nc-volume').value)||0}));
     STATE.clientDetailId = STATE.particuliers[STATE.particuliers.length-1].id; // open the new client's card
+    // Clear the form after saving
+    (['#nc-nom','#nc-ville','#nc-tel','#nc-email','#nc-volume']).forEach(id=>{
+      const el = $(id); if(el) el.value = '';
+    });
     saveState(); render();
   });
   $$('[data-action="remove-client"]').forEach(b=> b.addEventListener('click', ()=>{
@@ -6036,6 +6073,7 @@ function bindCatalogue(){
   $$('[data-action="delete-category"]').forEach(b=> b.addEventListener('click', (e)=>{
     e.stopPropagation();
     if(b.disabled) return;
+    if(!confirm(tf('confirm.deletecategory',{nom:b.dataset.cat}))) return;
     if(catalogueFilterCat===b.dataset.cat) catalogueFilterCat='';
     STATE.categories = STATE.categories.filter(c=>c!==b.dataset.cat); saveState(); render();
   }));
@@ -7244,10 +7282,18 @@ function bindAccountSettings(role){
 }
 async function doLogout(){
   if(BACKEND.on) await BACKEND.signOut();
-  STATE.auth.loggedIn = false;
-  STATE.publicView = 'landing';
+  // Clear all localStorage keys used by this app
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('aqualc'));
+  keys.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('signup-plan-selection');
+  localStorage.removeItem('signup-draft');
+
+  // Reset all state variables
+  STATE = initState();
+  signupDraft = {plan:'', nom:'', ville:'', email:'', password:'', passwordConfirm:''};
   acctEmailMsg = null; acctPwdMsg = null; acctIdentityMsg = null; loginError = null;
-  saveState(); render();
+
+  render();
 }
 
 /* ======================================================================
@@ -7375,6 +7421,14 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
       }
     }catch(e){ console.error('backend boot failed', e); }
   }
+
+  // Offline mode detection
+  let isOffline = !navigator.onLine;
+  const handleOnline = ()=>{ isOffline = false; if(STATE.auth.loggedIn) render(); };
+  const handleOffline = ()=>{ isOffline = true; if(STATE.auth.loggedIn) render(); };
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
   render();
 })();
 </script>
