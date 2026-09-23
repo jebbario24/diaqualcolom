@@ -670,7 +670,7 @@ const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
 const round0 = n=>Math.round(n);
 const round1 = n=>Math.round(n*10)/10;
 const round2 = n=>Math.round(n*100)/100;
-const fmt = (n,d=0)=>{ const num=Number(n); return (isFinite(num)?num:0).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}); };
+const fmt = (n,d=0)=>{ const num=Number(n); return (isFinite(num)?num:0).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); };
 // Wrapped in Unicode LRI/PDI isolate marks so the number+currency pair always renders
 // in a stable left-to-right order even inside an Arabic (RTL) paragraph — otherwise the
 // bidi algorithm reorders the two Latin "words" (amount, currency code) relative to each other.
@@ -1120,7 +1120,7 @@ function quotaGatedButton(role, cats, action, iconName, labelKey){
 /* ---------------- Seed / demo data ---------------- */
 const SEED = {
   theme:null, // null=system
-  lang:'fr',
+  lang:'en',
   exchangeRates:{EUR:10.8, USD:9.3}, // indicative, MAD-based — no live rate service in this prototype
   role:'business',
   view:'business.overview',
@@ -1337,7 +1337,7 @@ function normalizeState(){
   if(!STATE.calcResult || typeof STATE.calcResult!=='object') STATE.calcResult = {etude:null, entretien:null, hydraulique:null, sterilisation:null};
   ['etude','entretien','hydraulique','sterilisation'].forEach(k=>{ if(!(k in STATE.calcResult)) STATE.calcResult[k]=null; });
   if(!STATE.demandesDevis) STATE.demandesDevis = [];
-  STATE.lang = 'fr'; // French-only: language switcher removed at the user's request
+  STATE.lang = 'en'; // English-only: language switcher removed at the user's request
   if(!STATE.exchangeRates) STATE.exchangeRates = JSON.parse(JSON.stringify(SEED.exchangeRates));
   if(!STATE.devisTemplate.devise) STATE.devisTemplate.devise = 'MAD';
   if(!STATE.usage) STATE.usage = {};
@@ -1426,12 +1426,12 @@ function fmtPhone(s){
   const n = String(s||'').replace(/\s+/g,'');
   return /^0\d{9}$/.test(n) ? n.replace(/(\d{2})(?=\d)/g,'$1 ').trim() : String(s||'');
 }
-// Format numbers with thousand separators (1000 -> "1 000")
+// Format numbers with thousand separators (1000 -> "1,000")
 function fmtNumber(n, decimals=0){
   if(n===null || n===undefined) return '';
   const num = parseFloat(n);
   if(isNaN(num)) return String(n);
-  return num.toLocaleString('fr-FR', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+  return num.toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
 }
 function saveState(){
   const be = (typeof BACKEND !== 'undefined' && BACKEND.on) ? BACKEND : null;
@@ -3992,14 +3992,14 @@ function renderPublic(focusInfo){
           <div class="brand-mark">${ic('i-droplet')}</div>AquaLC
         </div>
         <div class="aq-nav-links">
-          ${navLink('landing','Accueil')}
-          ${navLink('pricing','Tarifs')}
+          ${navLink('landing','Home')}
+          ${navLink('pricing','Pricing')}
           ${navLink('docs','Documentation')}
           ${navLink('contact','Contact')}
-          ${view!=='login'&&view!=='signup' ? navLink('login','Connexion') : ''}
+          ${view!=='login'&&view!=='signup' ? navLink('login','Log in') : ''}
         </div>
         <div class="aq-nav-right">
-          <button class="aq-btn aq-btn-primary aq-btn-sm" data-action="public-go" data-view="pricing">Essai gratuit</button>
+          <button class="aq-btn aq-btn-primary aq-btn-sm" data-action="public-go" data-view="pricing">Free trial</button>
           <button class="aq-nav-toggle" data-action="aq-nav-toggle" aria-label="Menu">${ic('i-menu')}</button>
         </div>
       </nav>
@@ -4025,45 +4025,45 @@ function aqFooter(){
           <div class="aq-brand" style="margin-bottom:14px;" data-action="public-go" data-view="landing">
             <div class="brand-mark">${ic('i-droplet')}</div>AquaLC
           </div>
-          <p style="font-size:12.5px;max-width:280px;color:var(--aq-faint);">L'outil d'ingénierie piscine des professionnels : études, entretien, devis et CPS en quelques minutes.</p>
+          <p style="font-size:12.5px;max-width:280px;color:var(--aq-faint);">Pool engineering for professionals: studies, maintenance, quotes, and specification sheets in minutes.</p>
         </div>
         <div>
-          <h4>Produit</h4>
-          ${link('landing','Accueil')}${link('pricing','Tarifs')}${link('docs','Documentation')}
+          <h4>Product</h4>
+          ${link('landing','Home')}${link('pricing','Pricing')}${link('docs','Documentation')}
         </div>
         <div>
-          <h4>Entreprise</h4>
+          <h4>Company</h4>
           ${link('contact','Contact')}
           <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>
         </div>
         <div>
-          <h4>Légal</h4>
-          ${link('terms','Conditions d\'utilisation')}${link('privacy','Confidentialité')}
+          <h4>Legal</h4>
+          ${link('terms','Terms of Service')}${link('privacy','Privacy')}
         </div>
       </div>
     </div>
     <div class="aq-footer-bar">
-      <span>© ${year} AquaLC. Tous droits réservés.</span>
-      <span>Paiements sécurisés par Paddle</span>
+      <span>© ${year} AquaLC. All rights reserved.</span>
+      <span>Payments secured by Paddle</span>
     </div>
   </footer>`;
 }
 
 function viewLanding(){
   const features = [
-    ['i-gauge','Étude &amp; dimensionnement','Volume, filtration, pompe, pompe à chaleur et hydraulique, calculés à partir des dimensions du bassin.'],
-    ['i-droplet','Analyse de l\'eau','Diagnostic pH / chlore / TAC et plan de traitement avec les doses de correctifs exactes.'],
-    ['i-file','Devis &amp; CPS','Devis chiffrés et cahiers des charges au format PDF, avec ton en-tête et tes conditions.'],
-    ['i-flask','Stérilisation','Dimensionnement du régulateur pH/Chlore et de l\'électrolyseur au sel adaptés au bassin.'],
-    ['i-layers','Catalogue produits','Ton catalogue de références et de prix, réutilisé automatiquement dans chaque devis. Import et export CSV.'],
-    ['i-store','Boutique en ligne','Une vitrine partageable à tes clients avec tes produits et tes prix (formules Business).'],
-    ['i-users','Suivi clients','Fiches clients, coordonnées, suivi des paiements et des étapes de chantier, pour les professionnels.'],
-    ['i-clock','Historique &amp; recherche','Chaque calcul et chaque devis validés sont enregistrés, datés et retrouvables par mot-clé.'],
+    ['i-gauge','Sizing &amp; engineering','Volume, filtration, pump, heat pump, and hydraulics, calculated from the pool\'s dimensions.'],
+    ['i-droplet','Water analysis','pH / chlorine / TAC diagnostics and a treatment plan with exact correction doses.'],
+    ['i-file','Quotes &amp; spec sheets','Priced quotes and technical specification sheets as PDFs, with your letterhead and terms.'],
+    ['i-flask','Sterilization','Sizing for pH/chlorine regulators and salt electrolyzers matched to the pool.'],
+    ['i-layers','Product catalog','Your own catalog of items and prices, reused automatically in every quote. CSV import and export.'],
+    ['i-store','Online store','A shareable storefront with your products and prices for your clients (Business plans).'],
+    ['i-users','Client tracking','Client records, contact details, payment tracking, and job-site milestones, for professionals.'],
+    ['i-clock','History &amp; search','Every validated calculation and quote is saved, dated, and searchable by keyword.'],
   ];
   const steps = [
-    ['01','Saisis le bassin','Forme, dimensions, profondeur, contraintes du chantier.'],
-    ['02','Lis les résultats','Filtration, hydraulique et traitement, validés et prêts à chiffrer.'],
-    ['03','Génère le document','Devis ou CPS en PDF, envoyés au client le jour même.'],
+    ['01','Enter the pool','Shape, dimensions, depth, site constraints.'],
+    ['02','Read the results','Filtration, hydraulics, and treatment, validated and ready to price.'],
+    ['03','Generate the document','Quote or spec sheet as a PDF, sent to the client the same day.'],
   ];
   return `
     <section class="aq-hero">
@@ -4077,24 +4077,24 @@ function viewLanding(){
         <div class="aq-hero-tint"></div>
       </div>
       <div class="aq-hero-inner aq-reveal">
-        <span class="aq-eyebrow">Ingénierie piscine professionnelle</span>
-        <h1>La piscine, calculée<br>avant le premier coup de pelle.</h1>
-        <p>AquaLC transforme les dimensions d'un bassin en étude technique complète (filtration, hydraulique, traitement, devis et CPS) en quelques minutes.</p>
+        <span class="aq-eyebrow">Professional pool engineering</span>
+        <h1>The pool, calculated<br>before the first shovel of dirt.</h1>
+        <p>AquaLC turns a pool's dimensions into a complete technical study (filtration, hydraulics, treatment, quotes, and spec sheets) in minutes.</p>
         <div class="aq-hero-cta">
-          <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">Démarrer l'essai gratuit</button>
-          <button class="aq-btn aq-btn-lg" data-action="public-go" data-view="docs">Voir la documentation</button>
+          <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">Start free trial</button>
+          <button class="aq-btn aq-btn-lg" data-action="public-go" data-view="docs">View documentation</button>
         </div>
-        <div class="aq-hero-note">1 jour d'essai · sans carte bancaire · résiliable à tout moment</div>
+        <div class="aq-hero-note">1-day trial · no card required · cancel anytime</div>
       </div>
     </section>
 
     <section class="aq-section">
       <div class="aq-wrap">
         <div class="aq-stats aq-reveal">
-          <div class="aq-stat"><b>8</b><span>outils dans un seul abonnement</span></div>
-          <div class="aq-stat"><b>&lt; 5 min</b><span>pour une étude complète</span></div>
-          <div class="aq-stat"><b>PDF</b><span>devis &amp; CPS prêts à envoyer</span></div>
-          <div class="aq-stat"><b>5</b><span>formules, du particulier au bureau d'études</span></div>
+          <div class="aq-stat"><b>8</b><span>tools in one subscription</span></div>
+          <div class="aq-stat"><b>&lt; 5 min</b><span>for a complete study</span></div>
+          <div class="aq-stat"><b>PDF</b><span>quotes &amp; spec sheets ready to send</span></div>
+          <div class="aq-stat"><b>5</b><span>plans, from individual to engineering firm</span></div>
         </div>
       </div>
     </section>
@@ -4102,9 +4102,9 @@ function viewLanding(){
     <section class="aq-section">
       <div class="aq-wrap">
         <div class="aq-section-head aq-reveal">
-          <span class="aq-eyebrow">Ce que fait l'outil</span>
-          <h2>Tout le dimensionnement d'une piscine, au même endroit.</h2>
-          <p>Chaque module part des mêmes données de bassin et alimente le suivant : plus de ressaisie, plus d'oubli.</p>
+          <span class="aq-eyebrow">What the tool does</span>
+          <h2>All of a pool's sizing, in one place.</h2>
+          <p>Every module starts from the same pool data and feeds the next: no re-entering data, nothing forgotten.</p>
         </div>
         <div class="aq-grid aq-grid-4">
           ${features.map(([icon,ti,de])=>`
@@ -4120,8 +4120,8 @@ function viewLanding(){
     <section class="aq-section">
       <div class="aq-wrap">
         <div class="aq-section-head aq-reveal">
-          <span class="aq-eyebrow">Le déroulé</span>
-          <h2>Trois étapes, du bassin au document signé.</h2>
+          <span class="aq-eyebrow">How it works</span>
+          <h2>Three steps, from pool to signed document.</h2>
         </div>
         <div class="aq-grid aq-grid-3">
           ${steps.map(([n,ti,de])=>`
@@ -4137,10 +4137,10 @@ function viewLanding(){
     <section class="aq-section">
       <div class="aq-wrap">
         <div class="aq-card aq-card--deep aq-reveal" style="text-align:center;padding:56px 28px;">
-          <span class="aq-eyebrow">Prêt ?</span>
-          <h2 style="margin:14px auto 12px;max-width:520px;">Commence ton premier calcul aujourd'hui.</h2>
-          <p style="max-width:460px;margin:0 auto 26px;color:var(--aq-silver);">Essai d'un jour, sans carte. Choisis ta formule, crée ton compte, saisis un bassin.</p>
-          <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">Voir les formules</button>
+          <span class="aq-eyebrow">Ready?</span>
+          <h2 style="margin:14px auto 12px;max-width:520px;">Start your first calculation today.</h2>
+          <p style="max-width:460px;margin:0 auto 26px;color:var(--aq-silver);">One-day trial, no card. Choose your plan, create your account, enter a pool.</p>
+          <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">See plans</button>
         </div>
       </div>
     </section>
@@ -4161,36 +4161,36 @@ function viewPublicPricing(){
       + (p.boutique?`<li>${ic('i-check')}<span>${t('plan.feat.boutique')}</span></li>`:'');
     return `
       <div class="aq-price ${feat?'feat':''} aq-reveal">
-        ${feat?`<span class="aq-badge-trial">Le plus choisi</span>`:''}
-        ${!perUnit?`<span class="aq-badge-trial">1 jour d'essai gratuit</span>`:''}
+        ${feat?`<span class="aq-badge-trial">Most popular</span>`:''}
+        ${!perUnit?`<span class="aq-badge-trial">1-day free trial</span>`:''}
         <div class="aq-price-name">${esc(planLabel(id))}</div>
         <div class="aq-price-tag">${price}</div>
         <p style="font-size:12px;color:var(--aq-faint);margin-top:4px;">${plan_role_label(p.role)}</p>
         <ul>${lines}</ul>
-        <button class="aq-btn ${feat?'aq-btn-primary':''}" data-action="choose-plan" data-plan="${id}">${perUnit?'Créer un compte':'Choisir cette formule'}</button>
+        <button class="aq-btn ${feat?'aq-btn-primary':''}" data-action="choose-plan" data-plan="${id}">${perUnit?'Create an account':'Choose this plan'}</button>
       </div>`;
   };
   return `
     <section class="aq-hero" style="padding:72px 0 40px;">
       <div class="aq-caustics"></div>
       <div class="aq-hero-inner aq-reveal">
-        <span class="aq-eyebrow">Tarifs</span>
-        <h1 style="font-size:clamp(2.2rem,4.6vw,3.4rem);">Une formule par métier.</h1>
-        <p>Du propriétaire qui gère sa piscine au bureau d'études qui produit des CPS à la chaîne. Essai gratuit d'un jour sur les abonnements, sans carte.</p>
+        <span class="aq-eyebrow">Pricing</span>
+        <h1 style="font-size:clamp(2.2rem,4.6vw,3.4rem);">One plan per job.</h1>
+        <p>From the owner managing their own pool to the engineering firm producing spec sheets at scale. One-day free trial on subscriptions, no card required.</p>
       </div>
     </section>
     <section class="aq-section" style="border-top:none;padding-top:8px;">
       <div class="aq-price-wrap">
         <div class="aq-price-grid">${order.map(card).join('')}</div>
         <p style="text-align:center;margin-top:26px;font-size:12.5px;color:var(--aq-faint);">
-          Prix affichés en dollars US ($), taxes non comprises. Paiement sécurisé par Paddle, en ligne, partout dans le monde.
-          <span class="aq-muted-link" data-action="public-go" data-view="docs">Comment choisir ?</span>
+          Prices shown in US dollars ($), excluding any applicable taxes. Payments secured by Paddle, online, worldwide.
+          <span class="aq-muted-link" data-action="public-go" data-view="docs">How to choose?</span>
         </p>
       </div>
     </section>
   `;
 }
-function plan_role_label(role){ return role==='business' ? 'Pour les professionnels' : 'Pour les particuliers'; }
+function plan_role_label(role){ return role==='business' ? 'For professionals' : 'For individuals'; }
 
 function viewLogin(){
   const err = loginError? `<div class="aq-note bad">${ic('i-info')}<div>${t('login.error')}</div></div>` : '';
@@ -4200,22 +4200,22 @@ function viewLogin(){
   return `
     <div class="aq-authwrap">
       <div class="aq-authcard aq-reveal">
-        <span class="aq-eyebrow">Espace client</span>
-        <h2 style="font-size:1.5rem;margin:10px 0 6px;">Connexion</h2>
-        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:20px;">Accède à tes études, devis et documents.</p>
+        <span class="aq-eyebrow">Customer area</span>
+        <h2 style="font-size:1.5rem;margin:10px 0 6px;">Log in</h2>
+        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:20px;">Access your studies, quotes, and documents.</p>
         ${notice}${err}
-        <div class="aq-field"><label>E-mail</label><input class="aq-input" id="login-email" type="email" placeholder="vous@exemple.com"></div>
-        <div class="aq-field"><label>Mot de passe</label><input class="aq-input" id="login-password" type="password" placeholder="••••••••"></div>
-        <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-login">Se connecter</button>
-        <p style="text-align:center;margin-top:12px;font-size:12px;"><span class="aq-link" data-action="forgot-password" style="color:var(--accent);">Mot de passe oublié ?</span></p>
-        <p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--aq-silver);">Pas encore de compte ? <span class="aq-link" data-action="public-go" data-view="pricing">Choisir une formule</span></p>
+        <div class="aq-field"><label>Email</label><input class="aq-input" id="login-email" type="email" placeholder="you@example.com"></div>
+        <div class="aq-field"><label>Password</label><input class="aq-input" id="login-password" type="password" placeholder="••••••••"></div>
+        <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-login">Log in</button>
+        <p style="text-align:center;margin-top:12px;font-size:12px;"><span class="aq-link" data-action="forgot-password" style="color:var(--accent);">Forgot password?</span></p>
+        <p style="text-align:center;margin-top:16px;font-size:12.5px;color:var(--aq-silver);">No account yet? <span class="aq-link" data-action="public-go" data-view="pricing">Choose a plan</span></p>
         ${BACKEND.on? '' : `
         <div style="height:1px;background:var(--aq-line-soft);margin:18px 0;"></div>
-        <p style="font-size:11.5px;color:var(--aq-faint);margin-bottom:10px;">Comptes de démonstration :</p>
+        <p style="font-size:11.5px;color:var(--aq-faint);margin-bottom:10px;">Demo accounts:</p>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <button class="aq-btn aq-btn-sm" data-action="demo-login" data-role="admin">Admin · ${esc(STATE.auth.accounts.admin.email)}</button>
           ${demoBiz? `<button class="aq-btn aq-btn-sm" data-action="demo-login" data-role="business">Business · ${esc(demoBiz.email)}</button>`:''}
-          ${demoPart? `<button class="aq-btn aq-btn-sm" data-action="demo-login" data-role="particulier">Particulier · ${esc(demoPart.email)}</button>`:''}
+          ${demoPart? `<button class="aq-btn aq-btn-sm" data-action="demo-login" data-role="particulier">Individual · ${esc(demoPart.email)}</button>`:''}
         </div>`}
       </div>
     </div>
@@ -4230,23 +4230,23 @@ function viewSignup(){
   return `
     <div class="aq-authwrap">
       <div class="aq-authcard wide aq-reveal">
-        <span class="aq-eyebrow">Créer un compte</span>
-        <h2 style="font-size:1.5rem;margin:10px 0 6px;">Bienvenue sur AquaLC</h2>
-        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'Le CPS se paie 40 $ par document généré, sans abonnement.':'1 jour d\'essai gratuit, sans carte bancaire.'}</p>
+        <span class="aq-eyebrow">Create an account</span>
+        <h2 style="font-size:1.5rem;margin:10px 0 6px;">Welcome to AquaLC</h2>
+        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'CPS is billed $40 per document generated, no subscription.':'1-day free trial, no card required.'}</p>
         ${err}
         <div class="aq-field">
-          <label>Formule</label>
+          <label>Plan</label>
           <select class="aq-input" id="signup-plan">${opt('particulier')}${opt('business')}</select>
           <input type="hidden" id="signup-plan-initial" value="${planId}">
         </div>
         <div class="aq-field"><label id="signup-nom-label">${isBusiness? t('public.signup.nom.business') : t('public.signup.nom.particulier')}</label><input class="aq-input" id="signup-nom" type="text" value="${esc(signupDraft.nom)}"></div>
-        <div class="aq-field"><label>Ville</label><input class="aq-input" id="signup-ville" type="text" placeholder="${t('ph.city')}" value="${esc(signupDraft.ville)}"></div>
-        <div class="aq-field"><label>E-mail</label><input class="aq-input" id="signup-email" type="email" placeholder="vous@exemple.com" value="${esc(signupDraft.email)}"></div>
-        <div class="aq-field"><label>Mot de passe</label><input class="aq-input" id="signup-password" type="password" placeholder="••••••••" value="${esc(signupDraft.password)}"><span class="help">${t('public.signup.password.hint')}</span></div>
-        <div class="aq-field"><label>Confirmer le mot de passe</label><input class="aq-input" id="signup-password-confirm" type="password" placeholder="••••••••" value="${esc(signupDraft.passwordConfirm)}"></div>
-        <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-signup">Créer mon compte</button>
-        <p style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--aq-silver);">Déjà inscrit ? <span class="aq-link" data-action="public-go" data-view="login">Se connecter</span></p>
-        <p style="text-align:center;margin-top:10px;font-size:11px;color:var(--aq-faint);">En créant un compte, tu acceptes nos <span class="aq-muted-link" data-action="public-go" data-view="terms">conditions d'utilisation</span> et notre <span class="aq-muted-link" data-action="public-go" data-view="privacy">politique de confidentialité</span>.</p>
+        <div class="aq-field"><label>City</label><input class="aq-input" id="signup-ville" type="text" placeholder="${t('ph.city')}" value="${esc(signupDraft.ville)}"></div>
+        <div class="aq-field"><label>Email</label><input class="aq-input" id="signup-email" type="email" placeholder="you@example.com" value="${esc(signupDraft.email)}"></div>
+        <div class="aq-field"><label>Password</label><input class="aq-input" id="signup-password" type="password" placeholder="••••••••" value="${esc(signupDraft.password)}"><span class="help">${t('public.signup.password.hint')}</span></div>
+        <div class="aq-field"><label>Confirm password</label><input class="aq-input" id="signup-password-confirm" type="password" placeholder="••••••••" value="${esc(signupDraft.passwordConfirm)}"></div>
+        <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-signup">Create my account</button>
+        <p style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--aq-silver);">Already have an account? <span class="aq-link" data-action="public-go" data-view="login">Log in</span></p>
+        <p style="text-align:center;margin-top:10px;font-size:11px;color:var(--aq-faint);">By creating an account, you agree to our <span class="aq-muted-link" data-action="public-go" data-view="terms">Terms of Service</span> and our <span class="aq-muted-link" data-action="public-go" data-view="privacy">Privacy Policy</span>.</p>
       </div>
     </div>
   `;
@@ -4273,76 +4273,76 @@ function viewDocs(){
       <div class="aq-caustics"></div>
       <div class="aq-hero-inner aq-reveal">
         <span class="aq-eyebrow">Documentation</span>
-        <h1 style="font-size:clamp(2rem,4.4vw,3.2rem);">Comment utiliser AquaLC</h1>
-        <p>Le principe général, puis ce que chaque formule permet de faire, étape par étape.</p>
+        <h1 style="font-size:clamp(2rem,4.4vw,3.2rem);">How to use AquaLC</h1>
+        <p>The general principle, then what each plan lets you do, step by step.</p>
       </div>
     </section>
     <section class="aq-section" style="border-top:none;">
       <div class="aq-prose">
         <div class="aq-toc">
-          <a data-action="scroll-to" data-target="doc-start">Principe</a>
+          <a data-action="scroll-to" data-target="doc-start">Principle</a>
           <a data-action="scroll-to" data-target="doc-cps">CPS</a>
-          <a data-action="scroll-to" data-target="doc-proprietaire">Propriétaire</a>
-          <a data-action="scroll-to" data-target="doc-installateur">Installateur</a>
+          <a data-action="scroll-to" data-target="doc-proprietaire">${esc(planLabel('proprietaire'))}</a>
+          <a data-action="scroll-to" data-target="doc-installateur">${esc(planLabel('installateur'))}</a>
           <a data-action="scroll-to" data-target="doc-business">Business</a>
           <a data-action="scroll-to" data-target="doc-business_pro">Business Pro</a>
         </div>
 
-        <h2 id="doc-start">Le principe</h2>
-        <p>AquaLC part toujours des <strong>caractéristiques du bassin</strong> (forme, longueur, largeur, profondeurs). À partir de là, chaque module calcule une partie de l'installation et transmet ses résultats au suivant :</p>
+        <h2 id="doc-start">The principle</h2>
+        <p>AquaLC always starts from the <strong>pool's characteristics</strong> (shape, length, width, depths). From there, each module calculates part of the installation and passes its results to the next:</p>
         <ol>
-          <li><strong>Mon bassin / Étude</strong> :volume, débit de filtration, taille du filtre, puissance de pompe, dimensionnement pompe à chaleur.</li>
-          <li><strong>Hydraulique</strong> :diamètre de tuyauterie, pertes de charge, point de fonctionnement de la pompe.</li>
-          <li><strong>Analyse de l'eau / Entretien</strong> :diagnostic pH, chlore, TAC et doses de correctifs.</li>
-          <li><strong>Stérilisation</strong> :régulateur pH/Chlore et électrolyseur au sel adaptés au volume.</li>
-          <li><strong>Devis &amp; CPS</strong> :les résultats deviennent un devis chiffré ou un cahier des charges PDF.</li>
+          <li><strong>My Pool / Study</strong>: volume, filtration flow rate, filter size, pump power, heat pump sizing.</li>
+          <li><strong>Hydraulics</strong>: pipe diameter, head loss, pump operating point.</li>
+          <li><strong>Water Analysis / Maintenance</strong>: pH, chlorine, TAC diagnostics and correction doses.</li>
+          <li><strong>Sterilization</strong>: pH/chlorine regulator and salt electrolyzer sized to the volume.</li>
+          <li><strong>Quotes &amp; spec sheets</strong>: the results become a priced quote or a PDF specification sheet.</li>
         </ol>
-        <p>Chaque calcul se <strong>valide</strong> (bouton « Valider et calculer ») : la validation fige le résultat, l'enregistre daté, et décompte 1 unité de ton quota mensuel. Les études enregistrées sont retrouvables par mot-clé.</p>
+        <p>Every calculation gets <strong>validated</strong> (the "Validate and calculate" button): validation locks in the result, saves it with a date, and counts 1 unit against your monthly quota. Saved studies can be found again by keyword.</p>
 
-        <h2>Les formules en détail</h2>
+        <h2>The plans in detail</h2>
 
         ${planBlock('cps',
-          'Formule à l\'usage, sans abonnement : tu construis un cahier des prescriptions spéciales et tu paies 40 $ au moment de générer le document.',
-          ['Renseigne le type de projet, le délai, les garanties, les normes et le phasage.',
-           'Les articles techniques se pré-remplissent à partir de l\'étude ; tu peux tout modifier et ajouter tes propres clauses.',
-           'Clique « Payer 40 $ et générer » → paiement carte sécurisé → le PDF s\'ouvre pour impression.',
-           'Aucun engagement : tu paies uniquement les documents que tu produis.'])}
+          'Pay-per-use, no subscription: you build a technical specification sheet and pay $40 when you generate the document.',
+          ['Fill in the project type, timeline, warranties, standards, and phasing.',
+           'Technical line items are pre-filled from the study; you can edit everything and add your own clauses.',
+           'Click "Pay $40 and generate" → secure card payment → the PDF opens for printing.',
+           'No commitment: you only pay for the documents you produce.'])}
 
         ${planBlock('proprietaire',
-          'Pour le particulier qui gère sa propre piscine : suivi de l\'eau, petites études et devis en libre-service.',
-          ['Enregistre le profil de ton bassin une fois : il alimente tous les modules.',
-           'Analyse de l\'eau : saisis pH / chlore / TAC, reçois le plan de traitement et l\'historique des tests.',
-           'Étude &amp; stérilisation : dimensionne filtration, chauffage, régulateur et électrolyseur.',
-           'Devis en libre-service : chiffre tes achats de matériel avec ton propre catalogue.',
-           'Quotas : 5 opérations par catégorie et par mois.'])}
+          'For the individual managing their own pool: water tracking, small studies, and self-service quotes.',
+          ['Save your pool\'s profile once: it feeds every module.',
+           'Water analysis: enter pH / chlorine / TAC, get a treatment plan and test history.',
+           'Study &amp; sterilization: sizes filtration, heating, regulator, and electrolyzer.',
+           'Self-service quotes: price your equipment purchases with your own catalog.',
+           'Quotas: 5 operations per category per month.'])}
 
         ${planBlock('installateur',
-          'Pour l\'installateur / pisciniste indépendant : toute la chaîne technique et commerciale, catalogue central inclus.',
-          ['Gère tes clients (fiches, coordonnées, suivi de paiement, tâches).',
-           'Tous les modules de calcul, avec 50 opérations par catégorie et par mois.',
-           'Devis et CPS PDF avec ton en-tête, ton logo et tes conditions de paiement.',
-           'Accès au catalogue produits central (références et prix de base).'])}
+          'For the independent installer / pool contractor: the full technical and commercial chain, central catalog included.',
+          ['Manage your clients (records, contact details, payment tracking, tasks).',
+           'Every calculation module, with 50 operations per category per month.',
+           'PDF quotes and spec sheets with your letterhead, logo, and payment terms.',
+           'Access to the central product catalog (items and base prices).'])}
 
         ${planBlock('business',
-          'Pour l\'entreprise piscine : mêmes outils que l\'Installateur, en volume, plus un catalogue et une boutique qui lui sont propres.',
-          ['500 opérations par catégorie et par mois, plus 50 CPS par mois inclus.',
-           'Catalogue produits <strong>isolé</strong> : tu ajoutes tes propres références et tes prix, invisibles des autres entreprises.',
-           'Import de catalogue en masse (copier-coller Excel ou fichier CSV) et export CSV.',
-           'Boutique en ligne partageable : une vitrine avec tes produits et tes prix, envoyée à tes clients par lien ou WhatsApp.',
-           'Deux rythmes de facturation : 80 $ / mois ou 200 $ / 3 mois.'])}
+          'For the pool company: same tools as Installateur, at volume, plus a catalog and store of your own.',
+          ['500 operations per category per month, plus 50 CPS documents per month included.',
+           '<strong>Isolated</strong> product catalog: add your own items and prices, invisible to other companies.',
+           'Bulk catalog import (Excel copy-paste or CSV file) and CSV export.',
+           'Shareable online store: a storefront with your products and prices, sent to your clients by link or WhatsApp.',
+           'Two billing rhythms: $80 / month or $200 / 3 months.'])}
 
         ${planBlock('business_pro',
-          'Pour le bureau d\'études et la grande structure : tout Business, sans aucune limite d\'usage.',
-          ['Toutes les catégories en <strong>illimité</strong> :études, devis, entretien, CPS, stérilisation.',
-           'Catalogue et boutique propres, import / export inclus.',
-           'Facturation annuelle : 600 $ / an.'])}
+          'For engineering firms and large organizations: everything in Business, with no usage limits.',
+          ['Every category <strong>unlimited</strong>: studies, quotes, maintenance, CPS, sterilization.',
+           'Your own catalog and store, import / export included.',
+           'Billed annually: $600 / year.'])}
 
-        <h2>Compte &amp; facturation</h2>
+        <h2>Account &amp; billing</h2>
         <ul>
-          <li>L\'essai gratuit d\'un jour démarre à l\'inscription, sans carte. À la fin, tu choisis une formule pour continuer.</li>
-          <li>Changement de formule, mise à jour de carte, factures PDF et résiliation : bouton « Gérer mon abonnement » (portail Paddle).</li>
-          <li>Une résiliation prend effet à la fin de la période déjà payée ; l\'accès reste ouvert jusque-là.</li>
-          <li>Une question ? <span class="aq-link" data-action="public-go" data-view="contact">Contacte-nous</span>.</li>
+          <li>The one-day free trial starts at signup, no card required. At the end, choose a plan to continue.</li>
+          <li>Changing plans, updating your card, PDF invoices, and cancellation: "Manage my subscription" button (Paddle portal).</li>
+          <li>Cancellation takes effect at the end of the period already paid for; access stays open until then.</li>
+          <li>Have a question? <span class="aq-link" data-action="public-go" data-view="contact">Contact us</span>.</li>
         </ul>
       </div>
     </section>
@@ -4357,37 +4357,37 @@ function viewContact(){
       <div class="aq-caustics"></div>
       <div class="aq-hero-inner aq-reveal">
         <span class="aq-eyebrow">Contact</span>
-        <h1 style="font-size:clamp(2rem,4.4vw,3.2rem);">Parlons de ton projet</h1>
-        <p>Une question sur une formule, une démo, un besoin sur mesure ? On répond vite.</p>
+        <h1 style="font-size:clamp(2rem,4.4vw,3.2rem);">Let's talk about your project</h1>
+        <p>A question about a plan, a demo, a custom need? We respond quickly.</p>
       </div>
     </section>
     <section class="aq-section" style="border-top:none;">
       <div class="aq-wrap">
         <div class="aq-grid aq-grid-2" style="align-items:start;">
           <div class="aq-card aq-reveal">
-            <h3 style="margin-bottom:16px;">Écris-nous</h3>
-            <div id="contact-sent" class="aq-note" style="display:none;">${ic('i-check')}<div>Ton client mail s'est ouvert avec le message prérempli. Si rien ne s'est passé, écris directement à <strong>${AQUA_CONTACT.email}</strong>.</div></div>
-            <div class="aq-field"><label>Nom</label><input class="aq-input" id="ct-nom" type="text"></div>
-            <div class="aq-field"><label>E-mail</label><input class="aq-input" id="ct-email" type="email" placeholder="vous@exemple.com"></div>
-            <div class="aq-field"><label>Sujet</label>
+            <h3 style="margin-bottom:16px;">Write to us</h3>
+            <div id="contact-sent" class="aq-note" style="display:none;">${ic('i-check')}<div>Your mail client opened with the message pre-filled. If nothing happened, write directly to <strong>${AQUA_CONTACT.email}</strong>.</div></div>
+            <div class="aq-field"><label>Name</label><input class="aq-input" id="ct-nom" type="text"></div>
+            <div class="aq-field"><label>Email</label><input class="aq-input" id="ct-email" type="email" placeholder="you@example.com"></div>
+            <div class="aq-field"><label>Subject</label>
               <select class="aq-input" id="ct-sujet">
-                <option>Question sur une formule</option>
-                <option>Demande de démonstration</option>
-                <option>Support technique</option>
-                <option>Facturation</option>
-                <option>Autre</option>
+                <option>Question about a plan</option>
+                <option>Demo request</option>
+                <option>Technical support</option>
+                <option>Billing</option>
+                <option>Other</option>
               </select>
             </div>
             <div class="aq-field"><label>Message</label><textarea class="aq-input" id="ct-msg"></textarea></div>
-            <button class="aq-btn aq-btn-primary" style="width:100%;" data-action="contact-send">Envoyer</button>
-            <p class="help" style="margin-top:10px;color:var(--aq-faint);">Le formulaire ouvre ton logiciel de messagerie avec le message prêt à partir.</p>
+            <button class="aq-btn aq-btn-primary" style="width:100%;" data-action="contact-send">Send</button>
+            <p class="help" style="margin-top:10px;color:var(--aq-faint);">The form opens your email client with the message ready to send.</p>
           </div>
           <div class="aq-card aq-card--deep aq-reveal">
-            <h3 style="margin-bottom:16px;">Coordonnées</h3>
-            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">E-mail</span><a class="aq-link" href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a></p>
-            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">Téléphone</span><a class="aq-link" href="tel:${AQUA_CONTACT.tel.replace(/\\s/g,'')}">${AQUA_CONTACT.tel}</a></p>
-            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">WhatsApp</span><a class="aq-link" href="https://wa.me/${wa}" target="_blank" rel="noopener">Ouvrir la conversation</a></p>
-            <p style="font-size:13.5px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">Localisation</span>${esc(AQUA_CONTACT.ville)}</p>
+            <h3 style="margin-bottom:16px;">Contact details</h3>
+            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">Email</span><a class="aq-link" href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a></p>
+            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">Phone</span><a class="aq-link" href="tel:${AQUA_CONTACT.tel.replace(/\\s/g,'')}">${AQUA_CONTACT.tel}</a></p>
+            <p style="font-size:13.5px;margin-bottom:14px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">WhatsApp</span><a class="aq-link" href="https://wa.me/${wa}" target="_blank" rel="noopener">Open the conversation</a></p>
+            <p style="font-size:13.5px;"><span class="aq-eyebrow" style="display:block;margin-bottom:4px;">Location</span>${esc(AQUA_CONTACT.ville)}</p>
           </div>
         </div>
       </div>
@@ -4395,106 +4395,106 @@ function viewContact(){
   `;
 }
 
-/* ---------------- Conditions / Confidentialité ---------------- */
+/* ---------------- Terms / Privacy ---------------- */
 function viewLegal(kind){
-  const today = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   const terms = `
-    <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Conditions générales d'utilisation</h1>
-    <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Dernière mise à jour : ${today}</p>
-    <div class="aq-note">${ic('i-info')}<div>Modèle à faire relire par un conseil juridique avant publication. Complète les mentions entre crochets avec les informations de ton entreprise.</div></div>
+    <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Terms of Service</h1>
+    <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Last updated: ${today}</p>
+    <div class="aq-note">${ic('i-info')}<div>Template — have this reviewed by legal counsel before relying on it.</div></div>
 
-    <h2>1. Éditeur</h2>
-    <p>Le service AquaLC (« le Service ») est édité par <strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.entityType)}, dont le siège est à ${esc(AQUA_LEGAL_ENTITY.address)}. Contact : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
+    <h2>1. Provider</h2>
+    <p>The AquaLC service (the "Service") is provided by <strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.entityType)}, with its registered address at ${esc(AQUA_LEGAL_ENTITY.address)}. Contact: <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
 
-    <h2>2. Objet</h2>
-    <p>AquaLC est un outil d'aide au dimensionnement d'installations de piscine et à la production de documents commerciaux (devis, cahiers des prescriptions spéciales). Il s'adresse aux professionnels de la piscine et aux propriétaires de bassin.</p>
+    <h2>2. Purpose</h2>
+    <p>AquaLC is a tool for sizing pool installations and producing commercial documents (quotes, technical specification sheets). It's built for pool professionals and pool owners.</p>
 
-    <h2>3. Compte</h2>
+    <h2>3. Account</h2>
     <ul>
-      <li>La création d'un compte nécessite une adresse e-mail valide et le choix d'une formule.</li>
-      <li>Tu es responsable de la confidentialité de ton mot de passe et de toute activité réalisée depuis ton compte.</li>
-      <li>Un essai gratuit d'un jour est offert à l'inscription sur les formules d'abonnement, sans carte bancaire.</li>
+      <li>Creating an account requires a valid email address and a chosen plan.</li>
+      <li>You're responsible for keeping your password confidential and for any activity on your account.</li>
+      <li>A one-day free trial is offered at signup on subscription plans, no card required.</li>
     </ul>
 
-    <h2>4. Formules et paiement</h2>
+    <h2>4. Plans and payment</h2>
     <ul>
-      <li>Les formules d'abonnement (Propriétaire, Installateur, Business, Business Pro) sont facturées d'avance, par mois, par trimestre ou par an selon la formule choisie.</li>
-      <li>La formule CPS est facturée à l'usage : 40 $ par document généré, sans abonnement.</li>
-      <li>Les paiements sont traités par Paddle. AquaLC ne stocke aucune donnée de carte bancaire.</li>
-      <li>Les prix sont indiqués en dollars US ($), hors taxes éventuelles.</li>
-      <li>La résiliation d'un abonnement prend effet à la fin de la période en cours ; aucun remboursement au prorata n'est dû, sauf disposition légale contraire.</li>
+      <li>Subscription plans (Propriétaire, Installateur, Business, Business Pro) are billed in advance, monthly, quarterly, or yearly depending on the plan.</li>
+      <li>The CPS plan is billed per use: $40 per document generated, no subscription.</li>
+      <li>Payments are processed by Paddle. AquaLC does not store any card data.</li>
+      <li>Prices are shown in US dollars ($), exclusive of any applicable taxes.</li>
+      <li>Canceling a subscription takes effect at the end of the current billing period; no prorated refund is owed, except where required by law.</li>
     </ul>
 
     <h2>5. Quotas</h2>
-    <p>Chaque formule d'abonnement comprend un nombre d'opérations par catégorie et par mois. Une fois le quota atteint, les opérations concernées sont bloquées jusqu'au mois suivant ou jusqu'au passage à une formule supérieure.</p>
+    <p>Each subscription plan includes a number of operations per category per month. Once a quota is reached, the affected operations are blocked until the following month or until upgrading to a higher plan.</p>
 
-    <h2>6. Nature des résultats</h2>
-    <p>Les calculs, études et documents produits par AquaLC sont <strong>indicatifs</strong>. Ils reposent sur les données saisies par l'utilisateur et sur des règles de dimensionnement usuelles. Ils ne remplacent pas l'expertise d'un professionnel qualifié ni une étude d'exécution. AquaLC ne saurait être tenu responsable des conséquences d'un dimensionnement, d'un devis ou d'un CPS utilisé sans validation professionnelle.</p>
+    <h2>6. Nature of results</h2>
+    <p>The calculations, studies, and documents produced by AquaLC are <strong>indicative</strong>. They're based on data entered by the user and standard sizing rules. They do not replace the expertise of a qualified professional or a detailed engineering study. AquaLC is not liable for the consequences of a sizing calculation, quote, or CPS document used without professional validation.</p>
 
-    <h2>7. Disponibilité</h2>
-    <p>Le Service est fourni « en l'état ». Nous nous efforçons d'assurer sa disponibilité mais ne garantissons pas une absence d'interruption. Des opérations de maintenance peuvent être menées sans préavis.</p>
+    <h2>7. Availability</h2>
+    <p>The Service is provided "as is." We work to keep it available but do not guarantee uninterrupted operation. Maintenance may be performed without prior notice.</p>
 
-    <h2>8. Propriété intellectuelle</h2>
-    <p>Le Service, sa marque et son code restent la propriété de l'éditeur. Les données que tu saisis (clients, catalogues, études, documents) restent ta propriété ; tu peux les exporter à tout moment.</p>
+    <h2>8. Intellectual property</h2>
+    <p>The Service, its brand, and its code remain the property of the Provider. Data you enter (clients, catalogs, studies, documents) remains your property; you can export it at any time.</p>
 
-    <h2>9. Résiliation</h2>
-    <p>Tu peux résilier à tout moment depuis le portail de gestion d'abonnement. L'éditeur peut suspendre un compte en cas de non-paiement ou d'usage contraire aux présentes conditions.</p>
+    <h2>9. Termination</h2>
+    <p>You may cancel at any time from the subscription management portal. The Provider may suspend an account for non-payment or use contrary to these terms.</p>
 
-    <h2>10. Droit applicable</h2>
-    <p>Les présentes conditions sont régies par le droit de ${esc(AQUA_LEGAL_ENTITY.jurisdiction)}. Tout litige relève des tribunaux compétents de cette juridiction.</p>
+    <h2>10. Governing law</h2>
+    <p>These terms are governed by the law of ${esc(AQUA_LEGAL_ENTITY.jurisdiction)}. Any dispute falls under the jurisdiction of that state's courts.</p>
   `;
   const privacy = `
-    <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Politique de confidentialité</h1>
-    <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Dernière mise à jour : ${today}</p>
-    <div class="aq-note">${ic('i-info')}<div>Modèle à adapter et à faire relire. Vérifie la conformité avec la réglementation sur les données personnelles applicable à ton entreprise et à tes utilisateurs (par ex. CCPA en Californie, RGPD pour les utilisateurs dans l'UE).</div></div>
+    <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Privacy Policy</h1>
+    <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Last updated: ${today}</p>
+    <div class="aq-note">${ic('i-info')}<div>Template — verify compliance with the data protection rules that apply to your business and your users (e.g. CCPA in California, GDPR for EU users).</div></div>
 
-    <h2>1. Responsable du traitement</h2>
-    <p><strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.address)}. Pour toute question relative à tes données : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
+    <h2>1. Data controller</h2>
+    <p><strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.address)}. For any question about your data: <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
 
-    <h2>2. Données collectées</h2>
+    <h2>2. Data we collect</h2>
     <ul>
-      <li><strong>Compte</strong> : nom, ville, adresse e-mail, mot de passe (chiffré), formule choisie.</li>
-      <li><strong>Contenu métier</strong> : fiches clients, catalogues, études techniques, devis et CPS que tu crées dans l'outil.</li>
-      <li><strong>Facturation</strong> : identifiant client Paddle, statut d'abonnement, historique des paiements. Les données de carte sont détenues par Paddle, jamais par AquaLC.</li>
-      <li><strong>Techniques</strong> : journaux de connexion et d'erreur strictement nécessaires au fonctionnement.</li>
+      <li><strong>Account</strong>: name, city, email address, password (hashed), chosen plan.</li>
+      <li><strong>Business content</strong>: client records, catalogs, technical studies, quotes, and CPS documents you create in the app.</li>
+      <li><strong>Billing</strong>: Paddle customer ID, subscription status, payment history. Card data is held by Paddle, never by AquaLC.</li>
+      <li><strong>Technical</strong>: connection and error logs strictly necessary for the Service to function.</li>
     </ul>
 
-    <h2>3. Finalités</h2>
+    <h2>3. Purposes</h2>
     <ul>
-      <li>Fournir le service et enregistrer ton travail.</li>
-      <li>Gérer l'abonnement, la facturation et le support.</li>
-      <li>Assurer la sécurité et corriger les anomalies.</li>
+      <li>Provide the Service and save your work.</li>
+      <li>Manage subscriptions, billing, and support.</li>
+      <li>Ensure security and fix issues.</li>
     </ul>
 
-    <h2>4. Sous-traitants</h2>
+    <h2>4. Subprocessors</h2>
     <ul>
-      <li><strong>Supabase</strong> :hébergement de la base de données et authentification.</li>
-      <li><strong>Paddle</strong> :traitement des paiements et gestion des abonnements.</li>
-      <li><strong>Cloudflare</strong> :diffusion et sécurité de l'application.</li>
+      <li><strong>Supabase</strong>: database hosting and authentication.</li>
+      <li><strong>Paddle</strong>: payment processing and subscription management.</li>
+      <li><strong>Cloudflare</strong>: content delivery and application security.</li>
     </ul>
 
-    <h2>5. Durée de conservation</h2>
-    <p>Tes données sont conservées tant que ton compte est actif. Après résiliation, elles sont supprimées ou anonymisées dans un délai raisonnable, sous réserve des obligations légales de conservation (facturation notamment).</p>
+    <h2>5. Data retention</h2>
+    <p>Your data is retained for as long as your account is active. After termination, it is deleted or anonymized within a reasonable timeframe, subject to legal retention obligations (billing records in particular).</p>
 
-    <h2>6. Tes droits</h2>
-    <p>Tu disposes d'un droit d'accès, de rectification, de suppression et de portabilité de tes données. Tu peux exporter tes clients et ton catalogue à tout moment au format CSV depuis l'application. Pour exercer tes autres droits, écris à <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
+    <h2>6. Your rights</h2>
+    <p>You have the right to access, correct, delete, and export your data. You can export your clients and catalog as CSV from the app at any time. To exercise your other rights, write to <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
 
     <h2>7. Cookies</h2>
-    <p>L'application utilise le stockage local du navigateur pour te garder connecté et mémoriser tes préférences d'affichage. Aucun cookie publicitaire ou de suivi tiers n'est déposé.</p>
+    <p>The app uses browser local storage to keep you signed in and remember your display preferences. No advertising or third-party tracking cookies are used.</p>
 
-    <h2>8. Sécurité</h2>
-    <p>Les mots de passe sont stockés hachés, les échanges sont chiffrés (HTTPS), et l'accès aux données est cloisonné par compte au niveau de la base (Row Level Security).</p>
+    <h2>8. Security</h2>
+    <p>Passwords are stored hashed, connections are encrypted (HTTPS), and data access is scoped per account at the database level (Row Level Security).</p>
   `;
   return `
     <section class="aq-section" style="border-top:none;padding-top:56px;">
       <div class="aq-prose aq-reveal">
-        <span class="aq-eyebrow" style="margin-bottom:8px;">Légal</span>
+        <span class="aq-eyebrow" style="margin-bottom:8px;">Legal</span>
         ${kind==='privacy'? privacy : terms}
         <div style="height:1px;background:var(--aq-line-soft);margin:36px 0 18px;"></div>
         <p style="font-size:12.5px;color:var(--aq-faint);">
           ${kind==='privacy'
-            ? `Voir aussi les <span class="aq-link" data-action="public-go" data-view="terms">conditions d'utilisation</span>.`
-            : `Voir aussi la <span class="aq-link" data-action="public-go" data-view="privacy">politique de confidentialité</span>.`}
+            ? `Also see the <span class="aq-link" data-action="public-go" data-view="terms">Terms of Service</span>.`
+            : `Also see the <span class="aq-link" data-action="public-go" data-view="privacy">Privacy Policy</span>.`}
         </p>
       </div>
     </section>
@@ -5504,7 +5504,7 @@ function nextRenewalDate(inscription){
   const now = new Date();
   let d = new Date(now.getFullYear(), now.getMonth(), day);
   if(d <= now) d = new Date(now.getFullYear(), now.getMonth()+1, day);
-  try{ return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }
+  try{ return d.toLocaleDateString('en-US',{day:'numeric',month:'long',year:'numeric'}); }
   catch(e){ return d.toISOString().slice(0,10); }
 }
 function viewBusinessOverview(){
@@ -5844,7 +5844,7 @@ function viewEtude(role){
         <h1>${t('estimate.title')}</h1>
         <div class="quote-meta">
           <div><b>${t('estimate.tech')}</b></div>
-          <div>${t('estimate.date')} ${new Date().toLocaleDateString('fr-FR')}</div>
+          <div>${t('estimate.date')} ${new Date().toLocaleDateString('en-US')}</div>
         </div>
       </div>
       <h3 class="cps-h">${t('etude.card.pool')}</h3>
@@ -6500,14 +6500,14 @@ function renderPublicStore(data, focusInfo){
     <div class="public-shell">
       ${STATE.auth.loggedIn? `<div class="callout warn" style="margin:12px;align-items:center;">${ic('i-info')}<div style="flex:1">${t('store.preview.banner')}</div><button class="btn btn-sm" data-action="store-exit">${t('store.preview.exit')}</button></div>`:''}
       <div class="public-nav">
-        <div class="public-brand"><div class="brand-mark">${ic('i-store')}</div><div class="brand-name">${esc(data.t||'Boutique')}</div></div>
+        <div class="public-brand"><div class="brand-mark">${ic('i-store')}</div><div class="brand-name">${esc(data.t||'Store')}</div></div>
         <div class="public-nav-right">
           <button class="theme-toggle" data-action="toggle-theme" title="${t('theme.toggle')}">${ic(currentIsDark()?'i-sun':'i-moon')}</button>
         </div>
       </div>
       <div class="public-content">
         <div class="hero" style="padding:44px 32px 24px;">
-          <h1 style="font-size:28px;">${esc(data.t||'Boutique')}</h1>
+          <h1 style="font-size:28px;">${esc(data.t||'Store')}</h1>
           ${data.i? `<p>${esc(data.i)}</p>`:''}
           ${contactBtns? `<div class="hero-cta">${contactBtns}</div>`:''}
         </div>
