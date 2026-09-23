@@ -7600,7 +7600,7 @@ async function doLogout(){
   localStorage.removeItem('signup-draft');
 
   // Reset all state variables
-  STATE = initState();
+  loadState();
   signupDraft = {plan:'', nom:'', ville:'', email:'', password:'', passwordConfirm:''};
   acctEmailMsg = null; acctPwdMsg = null; acctIdentityMsg = null; loginError = null;
 
