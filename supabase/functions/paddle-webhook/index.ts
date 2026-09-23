@@ -1,7 +1,10 @@
 // POST /functions/v1/paddle-webhook   (called by Paddle, not the browser)
 //
 // The ONLY place that changes an account's plan / subscription status.
-// Verifies the Paddle-Signature header, then reconciles the account row.
+// Two layers of defense: source-IP allowlist (fetched live from Paddle,
+// never hardcoded — see fetchPaddleIps below), then Paddle-Signature
+// verification. The signature is the real security boundary; the IP check
+// is defense-in-depth and fails open if Paddle's IP endpoint is unreachable.
 //
 // Deploy WITHOUT JWT verification (Paddle has no Supabase JWT):
 //   supabase functions deploy paddle-webhook --no-verify-jwt
@@ -17,6 +20,44 @@ import { adminClient } from "../_shared/clients.ts";
 
 const webhookSecret = Deno.env.get("PADDLE_WEBHOOK_SECRET")!;
 const MAX_CLOCK_SKEW_SECONDS = 5;
+
+// Paddle's webhook source IPs, fetched from the source of truth rather than
+// hardcoded (the list can change). Cached per warm instance with a 1h TTL —
+// https://developer.paddle.com/webhooks/about/ip-addresses
+let paddleIpCache: { ips: Set<string>; fetchedAt: number } | null = null;
+const IP_CACHE_TTL_MS = 60 * 60 * 1000;
+
+async function fetchPaddleIps(): Promise<Set<string>> {
+  if (paddleIpCache && Date.now() - paddleIpCache.fetchedAt < IP_CACHE_TTL_MS) {
+    return paddleIpCache.ips;
+  }
+  const res = await fetch("https://api.paddle.com/ips");
+  const body = await res.json();
+  // All published CIDRs are currently /32 (single IPs) — strip the suffix for exact matching.
+  const ips = new Set<string>((body.data?.ipv4_cidrs ?? []).map((cidr: string) => cidr.split("/")[0]));
+  paddleIpCache = { ips, fetchedAt: Date.now() };
+  return ips;
+}
+
+function clientIp(req: Request): string | null {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip");
+}
+
+async function isFromPaddle(req: Request): Promise<boolean> {
+  const ip = clientIp(req);
+  if (!ip) return false;
+  try {
+    const allowed = await fetchPaddleIps();
+    return allowed.has(ip);
+  } catch (e) {
+    // If Paddle's IP endpoint is unreachable, fail open on IP but still rely
+    // on signature verification as the real security boundary.
+    console.error("paddle-webhook: failed to fetch Paddle IP list", e);
+    return true;
+  }
+}
 
 async function verifySignature(rawBody: string, header: string | null): Promise<boolean> {
   if (!header) return false;
@@ -89,6 +130,11 @@ async function applySubscription(sb: ReturnType<typeof adminClient>, sub: any) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+
+  if (!(await isFromPaddle(req))) {
+    console.error("paddle-webhook: request from non-Paddle IP", clientIp(req));
+    return new Response("forbidden", { status: 403 });
+  }
 
   const rawBody = await req.text();
   const sig = req.headers.get("paddle-signature");
