@@ -17,8 +17,16 @@ window.AQUA_SUPABASE = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54Zm9heWJqcHdta3pqcGRpZnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTk1NjAsImV4cCI6MjEwNTU5NTU2MH0.N7n_tRbH15xTTXw2TrRniFtgQ2tuNtbOXAvZ5Z0V3BA',
   appOrigin: 'https://aqualc.com'
 };
+// Paddle client-side token is public by design (like the anon key above) —
+// it can only open a checkout overlay, never charge a card or read data.
+// Paddle Dashboard > Developer Tools > Authentication > Client-side tokens.
+window.AQUA_PADDLE = {
+  clientToken: '',        // ← paste your Paddle client-side token (test_... or live_...)
+  environment: 'sandbox'  // 'sandbox' while testing, 'production' once live
+};
 </script>
 <script src="vendor/supabase-js.js"></script>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -792,22 +800,24 @@ const PLAN_QUOTA_KEYS = ['cps','devis','entretien','chauffage','hydraulique','re
 // (price, quotas, catalogue-write permission) from Admin > Plans, the same way
 // they already control individual business/particulier accounts.
 // 'billing' is 'monthly' (default — a flat recurring subscription) for every plan except the
-// standalone CPS plan, which is pay-per-use: 400 MAD is charged per CPS document generated,
+// standalone CPS plan, which is pay-per-use: $40 is charged per CPS document generated,
 // not a monthly fee. 'perUnitCategory' names which quota category that per-use price applies
 // to; quotas.cps stays >0 on that plan only as an "is CPS offered" flag, never as a monthly cap.
 // pricePeriod: 'unit' (pay-per-use), 'month', 'quarter' (3 mois), 'year'.
 // priceAltMAD / priceAltPeriod: option de facturation secondaire (ex. Business
 // mensuel OU trimestriel prépayé). Un quota à -1 = illimité (jamais bloquant).
+// NB: `priceMAD` holds a USD amount since the move to Paddle (Paddle doesn't
+// support MAD) — the field name is legacy and kept to avoid a wider rename.
 const PLAN_DEFAULTS = {
-  cps:          {id:'cps',          role:'particulier', priceMAD:400,  priceUSD:40, billing:'perUnit', perUnitCategory:'cps', pricePeriod:'unit',
+  cps:          {id:'cps',          role:'particulier', priceMAD:40,  billing:'perUnit', perUnitCategory:'cps', pricePeriod:'unit',
     quotas:{cps:1,  devis:0,   entretien:0,   chauffage:0,   hydraulique:0,   regulateur:0,   electrolyseur:0},   catalogueWrite:false},
-  proprietaire: {id:'proprietaire', role:'particulier', priceMAD:200,  priceUSD:20, pricePeriod:'month',
+  proprietaire: {id:'proprietaire', role:'particulier', priceMAD:20,  pricePeriod:'month',
     quotas:{cps:0,  devis:5,   entretien:5,   chauffage:5,   hydraulique:5,   regulateur:5,   electrolyseur:5},   catalogueWrite:false},
-  installateur: {id:'installateur', role:'business',    priceMAD:500,  priceUSD:50, pricePeriod:'month',
+  installateur: {id:'installateur', role:'business',    priceMAD:50,  pricePeriod:'month',
     quotas:{cps:0,  devis:50,  entretien:50,  chauffage:50,  hydraulique:50,  regulateur:50,  electrolyseur:50},  catalogueWrite:false, boutique:false},
-  business:     {id:'business',     role:'business',    priceMAD:800,  priceUSD:80, pricePeriod:'month', priceAltMAD:2000, priceAltPeriod:'quarter',
+  business:     {id:'business',     role:'business',    priceMAD:80,  pricePeriod:'month', priceAltMAD:200, priceAltPeriod:'quarter',
     quotas:{cps:50, devis:500, entretien:500, chauffage:500, hydraulique:500, regulateur:500, electrolyseur:500}, catalogueWrite:true,  boutique:true},
-  business_pro: {id:'business_pro', role:'business',    priceMAD:6000, priceUSD:600, pricePeriod:'year',
+  business_pro: {id:'business_pro', role:'business',    priceMAD:600, pricePeriod:'year',
     quotas:{cps:-1, devis:-1,  entretien:-1,  chauffage:-1,  hydraulique:-1,  regulateur:-1,  electrolyseur:-1},  catalogueWrite:true,  boutique:true},
 };
 const PLAN_LABEL_KEY = {cps:'plan.cps.name', proprietaire:'plan.proprietaire.name', installateur:'plan.installateur.name', business:'plan.business.name', business_pro:'plan.businesspro.name'};
@@ -824,7 +834,7 @@ function quotaIncluded(n){ return n !== 0; }                          // 0 = non
 function periodSuffix(period){
   return period==='year' ? t('unit.per.year') : period==='quarter' ? t('unit.per.quarter') : t('unit.per.month');
 }
-// "800 MAD / mois" (+ "ou 2000 MAD / 3 mois" si option), "400 MAD / CPS" pour le pay-per-use.
+// "$80 / mois" (+ "ou $200 / 3 mois" si option), "$40 / CPS" pour le pay-per-use.
 function planUnitLabel(plan){
   if(plan.billing==='perUnit') return tf('unit.mad.per',{cat:t('plan.quota.'+plan.perUnitCategory)});
   let s = periodSuffix(plan.pricePeriod||'month');
@@ -866,18 +876,18 @@ function accountForRole(role){
   return null;
 }
 function planForRole(role){ const acc = accountForRole(role); return acc? STATE.plans[acc.plan] : null; }
-// Abonnement Stripe terminé (résilié / impayé / expiré) : l'accès est coupé
-// jusqu'à un nouveau paiement. `past_due` reste toléré (période de grâce Stripe).
-var SUB_DEAD_STATUSES = ['canceled','unpaid','incomplete_expired'];
+// Abonnement Paddle terminé (résilié / impayé / expiré) : l'accès est coupé
+// jusqu'à un nouveau paiement. `past_due` reste toléré (période de grâce Paddle).
+var SUB_DEAD_STATUSES = ['canceled','paused']; // Paddle subscription.status values that mean "no access"
 // Abonnement terminé (résilié / impayé / expiré).
 function subInactive(acc){ return !!(acc && SUB_DEAD_STATUSES.indexOf(acc.stripeStatus) >= 0); }
-// Compte sans abonnement Stripe vivant (jamais souscrit, ou résilié).
+// Compte sans abonnement Paddle vivant (jamais souscrit, ou résilié).
 function subNever(acc){ return !!(acc && !acc.stripeStatus && (!BACKEND || !BACKEND.on || acc.stripeStatus === undefined)); }
 // Essai gratuit d'inscription encore en cours (style Shopify, sans carte).
 // Le plan CPS (paiement au document) n'a pas d'essai.
 function trialActive(acc){ return !!(acc && acc.plan !== 'cps' && acc.trialEndsAt && new Date(acc.trialEndsAt) > new Date()); }
 function trialDaysLeft(acc){ return acc && acc.trialEndsAt ? Math.max(0, Math.ceil((new Date(acc.trialEndsAt) - new Date())/86400000)) : 0; }
-// Accès manuel accordé par l'admin (client qui paie en espèces / hors Stripe) :
+// Accès manuel accordé par l'admin (client qui paie en espèces / hors Paddle) :
 // stripeStatus vaut 'manual' au lieu d'un statut Stripe réel. manualAccessUntil
 // est optionnel — null/absent = accès manuel illimité jusqu'à révocation par l'admin.
 function manualAccessExpired(acc){
@@ -1071,7 +1081,7 @@ function hasDevisQuota(role){ const plan = planForRole(role); return plan? quota
 function hasCpsQuota(role){ const plan = planForRole(role); return plan? quotaIncluded(plan.quotas.cps) : false; }
 function hasSterilQuota(role){ const plan = planForRole(role); return plan? (quotaIncluded(plan.quotas.regulateur) || quotaIncluded(plan.quotas.electrolyseur)) : false; }
 // Bouton de génération du CPS. En mode compte réel + plan CPS particulier :
-// paiement à l'usage (Stripe Checkout mode payment) — 1 paiement = 1 crédit CPS,
+// paiement à l'usage (Paddle transaction, one-off) — 1 paiement = 1 crédit CPS,
 // consommé à la génération. Sinon (démo, business, aperçu admin) : quota classique.
 function cpsGenerateControls(role){
   if(role !== 'particulier' || !BACKEND.on || STATE.auth.adminTestActive)
@@ -1379,6 +1389,13 @@ function normalizeState(){
     if(bz && bz.priceMAD === 2500){ bz.priceMAD = 800; bz.priceAltMAD = 2000; bz.priceAltPeriod = 'quarter'; }
     STATE.planRev = 2;
   }
+  // Migration Paddle (Sept. 2026) : Paddle ne facture pas en MAD -> tarifs repassés en USD.
+  if(STATE.planRev !== 3){
+    const usd = {cps:40, proprietaire:20, installateur:50, business:80, business_pro:600};
+    Object.keys(usd).forEach(id=>{ const p = STATE.plans[id]; if(p) p.priceMAD = usd[id]; });
+    if(STATE.plans.business) STATE.plans.business.priceAltMAD = 200;
+    STATE.planRev = 3;
+  }
   // Migrate accounts from the old Starter/Pro/Enterprise grid (or fill in a default) to the new plan ids.
   STATE.businesses.forEach(b=>{ if(PLAN_MIGRATE[b.plan]) b.plan = PLAN_MIGRATE[b.plan]; if(!STATE.plans[b.plan] || STATE.plans[b.plan].role!=='business') b.plan = 'installateur'; });
   STATE.businesses.forEach(normBoutique); // online-store config, added after launch
@@ -1486,7 +1503,7 @@ const BACKEND = (function(){
           const rec = STATE.businesses.find(x=>x.id===b.id) || {};
           Object.assign(rec, { id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
             inscription:b.inscription, email:b.email||u.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
-            ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, stripeCancelAtEnd:!!b.stripe_cancel_at_period_end,
+            ice:b.ice||'', stripeStatus:b.paddle_subscription_status||null, stripeCancelAtEnd:!!b.paddle_cancel_at_period_end,
             trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, has_manual_access:b.has_manual_access||false, manuel_access_expires_at:b.manuel_access_expires_at||null });
           if(!STATE.businesses.some(x=>x.id===b.id)) STATE.businesses.unshift(rec);
           STATE.auth.currentBusinessId = b.id;
@@ -1518,7 +1535,7 @@ const BACKEND = (function(){
           Object.assign(rec, normClient({ id:p.id, nom:p.nom, ville:p.ville||'—', businessId:p.business_id||null,
             statut:p.statut, volume:p.volume_bassin||0, plan:p.plan, email:u.email||'' }));
           Object.assign(rec, { telephone:p.telephone||'', adresse:p.adresse||'',
-            stripeStatus:p.stripe_subscription_status||null, stripeCancelAtEnd:!!p.stripe_cancel_at_period_end,
+            stripeStatus:p.paddle_subscription_status||null, stripeCancelAtEnd:!!p.paddle_cancel_at_period_end,
             trialEndsAt:p.trial_ends_at||null, cpsCredits:p.cps_credits||0, has_manual_access:p.has_manual_access||false, manuel_access_expires_at:p.manuel_access_expires_at||null });
           if(!STATE.particuliers.some(x=>x.id===p.id)) STATE.particuliers.unshift(rec);
           STATE.auth.currentParticulierId = p.id;
@@ -1531,7 +1548,7 @@ const BACKEND = (function(){
                 const brec = STATE.businesses.find(x=>x.id===b.id) || {};
                 Object.assign(brec, { id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
                   inscription:b.inscription, email:b.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
-                  ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, stripeCancelAtEnd:!!b.stripe_cancel_at_period_end,
+                  ice:b.ice||'', stripeStatus:b.paddle_subscription_status||null, stripeCancelAtEnd:!!b.paddle_cancel_at_period_end,
                   trialEndsAt:b.trial_ends_at||null, cpsCredits:b.cps_credits||0, has_manual_access:b.has_manual_access||false, manuel_access_expires_at:b.manuel_access_expires_at||null });
                 if(!STATE.businesses.some(x=>x.id===b.id)) STATE.businesses.unshift(brec);
                 api.myBiz = b.id;
@@ -1564,6 +1581,8 @@ const BACKEND = (function(){
           cur.pricePeriod = pl.price_period || 'month';
           cur.priceAltMAD = pl.price_alt_mad || null;
           cur.priceAltPeriod = pl.price_alt_period || null;
+          cur.paddlePriceId = pl.paddle_price_id || null;
+          cur.paddlePriceAltId = pl.paddle_price_alt_id || null;
           cur.customLabel = pl.label || cur.customLabel;
           cur.catalogueWrite = pl.catalogue_write;
           cur.quotas = { cps:pl.quota_cps, devis:pl.quota_devis, entretien:pl.quota_entretien,
@@ -1608,7 +1627,7 @@ const BACKEND = (function(){
 
       return true;
     },
-    // Pousse l'identité éditable du compte (nom, ville, plan reste géré par Stripe).
+    // Pousse l'identité éditable du compte (nom, ville, plan reste géré par Paddle).
     pushSoon(){
       clearTimeout(api._timer);
       api._timer = setTimeout(api.flush, 1200);
@@ -1779,7 +1798,7 @@ const BACKEND = (function(){
         if(Array.isArray(bizs)) STATE.businesses = bizs.map(b=>({
           id:b.id, nom:b.nom, ville:b.ville||'—', plan:b.plan, statut:b.statut,
           inscription:b.inscription, email:b.email||'', telephone:b.telephone||'', adresse:b.adresse||'',
-          ice:b.ice||'', stripeStatus:b.stripe_subscription_status||null, trialEndsAt:b.trial_ends_at||null,
+          ice:b.ice||'', stripeStatus:b.paddle_subscription_status||null, trialEndsAt:b.trial_ends_at||null,
           manualAccessUntil:b.manual_access_until||null }));
         if(Array.isArray(parts)) STATE.particuliers = parts.map(api._clientFromDb);
       }catch(e){ console.warn('admin load failed', e); }
@@ -1938,8 +1957,8 @@ const BACKEND = (function(){
         montantPaye:Number(p.montant_paye)||0, montantTotal:Number(p.montant_total)||0,
         taches:Array.isArray(p.taches)?p.taches:[], suivi:Array.isArray(p.suivi)?p.suivi:[],
       });
-      rec.stripeStatus = p.stripe_subscription_status||null;
-      rec.stripeCancelAtEnd = !!p.stripe_cancel_at_period_end;
+      rec.stripeStatus = p.paddle_subscription_status||null;
+      rec.stripeCancelAtEnd = !!p.paddle_cancel_at_period_end;
       rec.trialEndsAt = p.trial_ends_at||null;
       rec.cpsCredits = p.cps_credits||0;
       rec.manualAccessUntil = p.manual_access_until||null;
@@ -2041,7 +2060,7 @@ const BACKEND = (function(){
       return { ok:true, needsEmailConfirm:true };
     },
     async signOut(){ try{ await api.sb.auth.signOut(); }catch(e){} api.uid = null; },
-    // --- Phase 5 : paiement Stripe (Edge Functions) ---
+    // --- Phase 5 : paiement Paddle ---
     async _fn(name, body){
       try{
         const { data, error } = await api.sb.functions.invoke(name, { body: body || {} });
@@ -2050,10 +2069,34 @@ const BACKEND = (function(){
         return data || {};
       }catch(e){ api._lastError = '['+name+'] '+String(e && e.message || e); return { error: String(e && e.message || e) }; }
     },
+    // Paddle overlay checkout runs entirely client-side (no server round-trip
+    // needed to "create" it, unlike Stripe Checkout Sessions) — the price ids
+    // came down with the public `plans` row on hydrate(). The webhook is the
+    // only thing that actually writes the resulting plan/subscription back.
     async startCheckout(planId, billing){
-      const r = await api._fn('create-checkout', { planId, billing: billing || 'main' });
-      if(r.url){ window.location.href = r.url; }
-      return r;
+      if(!window.Paddle) return { error: 'Paddle.js not loaded' };
+      const plan = STATE.plans[planId];
+      if(!plan) return { error: 'unknown plan' };
+      const priceId = billing === 'alt' ? plan.paddlePriceAltId : plan.paddlePriceId;
+      if(!priceId) return { error: `plan ${planId} (${billing||'main'}) has no Paddle price configured` };
+      const { data: userRes, error: userErr } = await api.sb.auth.getUser();
+      if(userErr || !userRes?.user) return { error: 'not authenticated' };
+      const user = userRes.user;
+      const table = plan.role === 'business' ? 'businesses' : 'particuliers';
+      const accountId = table === 'businesses' ? STATE.auth.currentBusinessId : STATE.auth.currentParticulierId;
+      const account = (table === 'businesses' ? STATE.businesses : STATE.particuliers).find(x=>x.id===accountId);
+      if(!account) return { error: 'account not found for user' };
+      const oneOff = plan.pricePeriod === 'unit';
+      window.Paddle.Checkout.open({
+        items: [{ priceId, quantity: 1 }],
+        customer: { email: user.email },
+        customData: {
+          supabase_profile_id: user.id, account_table: table,
+          account_id: account.id, plan_id: planId, billing: billing || 'main',
+          ...(oneOff ? { kind: 'cps' } : {}),
+        },
+      });
+      return { ok:true };
     },
     async openPortal(){
       const r = await api._fn('create-portal', {});
@@ -2064,12 +2107,42 @@ const BACKEND = (function(){
   return api;
 })();
 
+// Paddle.js init: sandbox/production + client token come from AQUA_PADDLE
+// (see the inline <script> at the top of this file). eventCallback catches
+// checkout.completed to show the success banner and re-hydrate the account
+// once the webhook has had a moment to land — mirrors the old ?checkout=success
+// flow, but nothing to parse from the URL since the overlay never navigates away.
+function setupPaddle(){
+  const cfg = window.AQUA_PADDLE || {};
+  if(!cfg.clientToken || !window.Paddle) return;
+  try{
+    window.Paddle.Environment.set(cfg.environment === 'production' ? 'production' : 'sandbox');
+    window.Paddle.Initialize({
+      token: cfg.clientToken,
+      eventCallback(e){
+        if(e && e.name === 'checkout.completed'){
+          const cd = (e.data && e.data.custom_data) || {};
+          checkoutFlash = cd.kind === 'cps' ? 'cps' : 'success';
+          justCompletedCheckout = true;
+          render();
+          setTimeout(async ()=>{
+            try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s) await BACKEND.hydrate(s); }
+            catch(err){ console.error('post-checkout hydrate failed', err); }
+            justCompletedCheckout = false;
+            render();
+          }, 3000);
+        }
+      },
+    });
+  }catch(e){ console.error('Paddle init failed', e); }
+}
+
 /* transient (not persisted) calc caches */
 const CALC = { etude:null, entretien:null, hydraulique:null, sterilisation:null };
 let loginError = null; // transient — not persisted, cleared on every successful navigation
 let signupError = null; // transient — not persisted, cleared on every successful navigation
 let backendSignupNotice = false; // MODE COMPTE RÉEL : "vérifiez votre e-mail" après inscription
-let checkoutFlash = null; // 'success' | 'cancel' — message après retour de Stripe Checkout
+let checkoutFlash = null; // 'success' | 'cps' | 'cancel' — message après un paiement Paddle
 // Filtres de recherche dans les listes "enregistrés" — transitoires (non persistés).
 let calcHistFilter = { etude:'', entretien:'', hydraulique:'', sterilisation:'' };
 let docHistFilter = { devis:'', cps:'' };
@@ -2528,7 +2601,7 @@ const I18N = {
     'admin.part.title':'Comptes Particuliers', 'admin.part.hint':'Rattachés à un Business ou indépendants',
     'admin.access.grant':'Accès manuel', 'admin.access.activate':'Activer', 'admin.access.cancel':'Annuler',
     'admin.access.manual':'Accès manuel', 'admin.access.expired':'Accès manuel expiré', 'admin.access.unlimited':'illimité',
-    'admin.access.revoke':'Révoquer', 'admin.access.revoke.confirm':'Révoquer l\'accès manuel de ce compte ? Il redeviendra verrouillé tant qu\'aucun abonnement Stripe n\'est actif.',
+    'admin.access.revoke':'Révoquer', 'admin.access.revoke.confirm':'Révoquer l\'accès manuel de ce compte ? Il redeviendra verrouillé tant qu\'aucun abonnement Paddle n\'est actif.',
     'admin.access.until.hint':'Date de fin (optionnel) — laisser vide pour un accès manuel illimité, révocable à tout moment.',
     'admin.access.cps.na':'Formule CPS — sans verrou',
     'admin.create.new':'Nouveau compte', 'admin.create.title':'Créer un compte',
@@ -2558,7 +2631,7 @@ const I18N = {
     'plan.feat.devicscpsunlimited':'Devis & CPS illimités', 'plan.feat.supportpriority':'Support prioritaire',
     'plan.feat.clientsunlimited':'Clients particuliers illimités', 'plan.feat.multiagences':'Multi-agences',
     'plan.feat.apiexport':'API & export comptable', 'plan.feat.accountmanager':'Account manager dédié',
-    'unit.mad.mois':'MAD / mois', 'unit.mad.per':'MAD / {cat}',
+    'unit.mad.mois':'$ / mois', 'unit.mad.per':'$ / {cat}',
     'admin.settings.title':'Formules et seuils par défaut', 'admin.settings.hint':'Appliqués à tous les comptes Business (lecture seule dans ce prototype)',
     'settings.filtration.title':'Filtration', 'settings.filtration.speed':'Vitesse de filtration retenue :', 'settings.filtration.rule':'Règle indicative durée : température de l\'eau ÷ 2',
     'settings.chauffage.title':'Chauffage', 'settings.chauffage.kwh':'1 m³ élevé de 1°C ≈', 'settings.chauffage.cop':'COP moyen pompe à chaleur retenu :',
@@ -2757,24 +2830,24 @@ const I18N = {
     'cps.sign.maitre':'Le Maître d\'ouvrage', 'cps.sign.readapproved':'Lu et approuvé, date et signature',
     'cps.disclaimer':'Ce CPS est un modèle indicatif généré automatiquement à partir de votre étude technique. Il doit être relu et validé par un professionnel (technique et juridique) avant toute valeur contractuelle.',
     'cps.credits.balance':'Crédits CPS disponibles : {n}',
-    'cps.pay.btn':'Payer 400 MAD et générer le document',
+    'cps.pay.btn':'Payer 40 $ et générer le document',
     'cps.generate.btn':'Générer le document (1 crédit CPS)',
     'cps.pay.received':'Paiement reçu. Vous pouvez générer votre document.',
-    'cps.credits.none':'Aucun crédit CPS disponible. Payez 400 MAD pour générer ce document.',
-    'cps.abon.note':'la formule CPS se paie au document (400 MAD), sans abonnement ni essai. Passez à une formule ci-dessous pour un forfait mensuel.',
+    'cps.credits.none':'Aucun crédit CPS disponible. Payez 40 $ pour générer ce document.',
+    'cps.abon.note':'la formule CPS se paie au document (40 $), sans abonnement ni essai. Passez à une formule ci-dessous pour un forfait mensuel.',
     'abon.checkout.cps':'Paiement CPS confirmé, votre crédit est ajouté dans quelques secondes.',
     'abon.currentplan':'Plan actuel : {plan}', 'abon.renewal':'Renouvellement automatique le 01/09/2026', 'abon.usage.title':'Utilisation ce mois-ci',
     'abon.devisgeneres':'Devis générés ce mois', 'abon.changeplan':'Changer de plan', 'abon.billing':'Facturation',
-    'abon.billing.note':'Historique de facturation, factures PDF et changement de carte : dans « Gérer mon abonnement » (portail Stripe).',
+    'abon.billing.note':'Historique de facturation, factures PDF et changement de carte : dans « Gérer mon abonnement » (portail Paddle).',
     'abon.changeplan.confirm':'Passer à la formule « {plan} » maintenant ? Le changement est immédiat et remplace votre formule actuelle.',
-    'abon.current':'Formule actuelle', 'abon.choose':'Choisir cette formule', 'abon.choose.alt':'ou {price} MAD {per}',
+    'abon.current':'Formule actuelle', 'abon.choose':'Choisir cette formule', 'abon.choose.alt':'ou {price} $ {per}',
     'abon.manage':'Gérer mon abonnement', 'abon.nosub':'Aucun abonnement en ligne actif.', 'abon.plans.title':'Formules disponibles',
     'abon.expired':'Abonnement inactif : l\'accès aux outils est suspendu. Choisissez une formule ci-dessous pour le réactiver.',
     'abon.trial.active':'Essai gratuit en cours, il vous reste {n} jour(s). Choisissez une formule pour continuer sans interruption.',
     'abon.trial.ended':'Votre essai gratuit est terminé. Choisissez une formule pour retrouver l\'accès aux outils.',
     'abon.demo.note':'Mode démo : le changement de formule est instantané, sans paiement.',
     'abon.cancelscheduled':'Résiliation programmée : l\'accès reste actif jusqu\'à la fin de la période payée.',
-    'abon.admintest.note':'Aperçu admin : le paiement Stripe est désactivé ici. Testez-le avec un vrai compte business.',
+    'abon.admintest.note':'Aperçu admin : le paiement Paddle est désactivé ici. Testez-le avec un vrai compte business.',
     'abon.checkout.ok':'Paiement confirmé. Votre formule s\'active dans quelques secondes.',
     'abon.checkout.cancel':'Paiement annulé — aucune formule n\'a été modifiée.',
     'abon.checkout.err':'Impossible d\'ouvrir le paiement :', 'abon.portal.err':'Impossible d\'ouvrir la gestion d\'abonnement :',
@@ -2782,7 +2855,7 @@ const I18N = {
     'abon.manual.expired':'Votre accès manuel a expiré. Contactez-nous pour le renouveler, ou choisissez une formule ci-dessous pour payer en ligne.',
     'abon.manual.note':'Accès géré manuellement par notre équipe — aucune carte enregistrée.',
     'abon.status.active':'actif', 'abon.status.trialing':'essai', 'abon.status.past_due':'paiement en retard',
-    'abon.status.canceled':'annulé', 'abon.status.unpaid':'impayé', 'abon.status.incomplete':'incomplet', 'abon.status.incomplete_expired':'expiré',
+    'abon.status.canceled':'annulé', 'abon.status.paused':'suspendu',
     'abon.status.manual':'accès manuel',
     'part.bassin.title':'Profil de mon bassin', 'part.bassin.forme':'Forme', 'part.bassin.summary':'Résumé',
     'part.bassin.volumeestime':'Volume estimé',
@@ -2799,11 +2872,11 @@ const I18N = {
     'quota.exhausted':'Vous avez atteint votre quota mensuel pour cette action. Il sera réinitialisé le mois prochain.',
     'quota.serverfull':'Quota mensuel atteint pour cette action (vérifié côté serveur). Le compteur repart au début du mois prochain.',
     'quota.remaining':'{n} / {quota} restant(s) ce mois-ci',
-    'quota.perunit.hint':'{price} MAD par {label} — {n} généré(s) ce mois-ci ({total} MAD)',
+    'quota.perunit.hint':'{price} $ par {label} — {n} généré(s) ce mois-ci ({total} $)',
     'plan.cps.name':'CPS', 'plan.proprietaire.name':'Propriétaire', 'plan.installateur.name':'Installateur', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
     'plan.quota.unlimited.line':'{label} en illimité', 'quota.unlimited':'illimité',
     'unit.per.month':'/ mois', 'unit.per.quarter':'/ 3 mois', 'unit.per.year':'/ an',
-    'plan.price.alt':'ou {price} MAD {per}',
+    'plan.price.alt':'ou {price} $ {per}',
     'period.month':'par mois', 'period.quarter':'par 3 mois', 'period.year':'par an',
     'admin.plans.pricealt':'Option :', 'admin.plans.quota.unlimited.hint':'Saisir -1 pour un quota illimité.',
     'entretien.couleur':'Couleur de l\'eau', 'entretien.couleur.clair':'Claire', 'entretien.couleur.jaune':'Jaunâtre', 'entretien.couleur.vert':'Verte',
@@ -2953,7 +3026,7 @@ const I18N = {
     'admin.part.title':'Individual accounts', 'admin.part.hint':'Linked to a Business or independent',
     'admin.access.grant':'Manual access', 'admin.access.activate':'Activate', 'admin.access.cancel':'Cancel',
     'admin.access.manual':'Manual access', 'admin.access.expired':'Manual access expired', 'admin.access.unlimited':'unlimited',
-    'admin.access.revoke':'Revoke', 'admin.access.revoke.confirm':'Revoke this account\'s manual access? It will be locked out again until a Stripe subscription is active.',
+    'admin.access.revoke':'Revoke', 'admin.access.revoke.confirm':'Revoke this account\'s manual access? It will be locked out again until a Paddle subscription is active.',
     'admin.access.until.hint':'End date (optional) — leave blank for unlimited manual access, revocable anytime.',
     'admin.access.cps.na':'CPS plan — no lock',
     'admin.create.new':'New account', 'admin.create.title':'Create an account',
@@ -2983,7 +3056,7 @@ const I18N = {
     'plan.feat.devicscpsunlimited':'Unlimited quotes & specs', 'plan.feat.supportpriority':'Priority support',
     'plan.feat.clientsunlimited':'Unlimited individual clients', 'plan.feat.multiagences':'Multi-branch',
     'plan.feat.apiexport':'API & accounting export', 'plan.feat.accountmanager':'Dedicated account manager',
-    'unit.mad.mois':'MAD / month', 'unit.mad.per':'MAD / {cat}',
+    'unit.mad.mois':'$ / month', 'unit.mad.per':'$ / {cat}',
     'admin.settings.title':'Default formulas and thresholds', 'admin.settings.hint':'Applied to all Business accounts (read-only in this prototype)',
     'settings.filtration.title':'Filtration', 'settings.filtration.speed':'Filtration speed used:', 'settings.filtration.rule':'Indicative rule: water temperature ÷ 2',
     'settings.chauffage.title':'Heating', 'settings.chauffage.kwh':'1 m³ raised by 1°C ≈', 'settings.chauffage.cop':'Average heat pump COP used:',
@@ -3182,23 +3255,23 @@ const I18N = {
     'cps.sign.maitre':'The Client (owner)', 'cps.sign.readapproved':'Read and approved, date and signature',
     'cps.disclaimer':'This CPS is an indicative template automatically generated from your technical study. It must be reviewed and validated by a professional (technical and legal) before it has any contractual value.',
     'cps.credits.balance':'CPS credits available: {n}',
-    'cps.pay.btn':'Pay 400 MAD and generate the document',
+    'cps.pay.btn':'Pay $40 and generate the document',
     'cps.generate.btn':'Generate the document (1 CPS credit)',
     'cps.pay.received':'Payment received — you can generate your document.',
-    'cps.credits.none':'No CPS credit available. Pay 400 MAD to generate this document.',
-    'cps.abon.note':'the CPS plan is billed per document (400 MAD), no subscription or trial. Switch to a plan below for a monthly package.',
+    'cps.credits.none':'No CPS credit available. Pay $40 to generate this document.',
+    'cps.abon.note':'the CPS plan is billed per document ($40), no subscription or trial. Switch to a plan below for a monthly package.',
     'abon.checkout.cps':'CPS payment confirmed — your credit is added within a few seconds.',
     'abon.currentplan':'Current plan: {plan}', 'abon.renewal':'Automatic renewal on 09/01/2026', 'abon.usage.title':'Usage this month',
     'abon.devisgeneres':'Quotes generated this month', 'abon.changeplan':'Change plan', 'abon.billing':'Billing',
-    'abon.billing.note':'Billing history, PDF invoices and card changes: in "Manage my subscription" (Stripe portal).',
-    'abon.current':'Current plan', 'abon.choose':'Choose this plan', 'abon.choose.alt':'or {price} MAD {per}',
+    'abon.billing.note':'Billing history, PDF invoices and card changes: in "Manage my subscription" (Paddle portal).',
+    'abon.current':'Current plan', 'abon.choose':'Choose this plan', 'abon.choose.alt':'or {price} $ {per}',
     'abon.manage':'Manage my subscription', 'abon.nosub':'No active online subscription.', 'abon.plans.title':'Available plans',
     'abon.expired':'Subscription inactive — tool access is suspended. Pick a plan below to reactivate it.',
     'abon.trial.active':'Free trial running — {n} day(s) left. Pick a plan to keep access after the trial.',
     'abon.trial.ended':'Your free trial has ended — pick a plan to restore access to the tools.',
     'abon.demo.note':'Demo mode: switching plans is instant, no payment.',
     'abon.cancelscheduled':'Cancellation scheduled — access stays active until the end of the paid period.',
-    'abon.admintest.note':'Admin preview: Stripe checkout is disabled here. Test it from a real business account.',
+    'abon.admintest.note':'Admin preview: Paddle checkout is disabled here. Test it from a real business account.',
     'abon.checkout.ok':'Payment confirmed. Your plan activates in a few seconds.',
     'abon.checkout.cancel':'Payment cancelled — no plan was changed.',
     'abon.checkout.err':'Could not open checkout:', 'abon.portal.err':'Could not open subscription management:',
@@ -3206,7 +3279,7 @@ const I18N = {
     'abon.manual.expired':'Your manual access has expired. Contact us to renew it, or pick a plan below to pay online.',
     'abon.manual.note':'Access managed manually by our team — no card on file.',
     'abon.status.active':'active', 'abon.status.trialing':'trial', 'abon.status.past_due':'past due',
-    'abon.status.canceled':'cancelled', 'abon.status.unpaid':'unpaid', 'abon.status.incomplete':'incomplete', 'abon.status.incomplete_expired':'expired',
+    'abon.status.canceled':'cancelled', 'abon.status.paused':'paused',
     'abon.status.manual':'manual access',
     'abon.changeplan.confirm':'Switch to the "{plan}" plan now? The change is immediate and replaces your current plan.',
     'part.bassin.title':'My pool profile', 'part.bassin.forme':'Shape', 'part.bassin.summary':'Summary',
@@ -3224,11 +3297,11 @@ const I18N = {
     'quota.exhausted':'You\'ve reached your monthly quota for this action. It will reset next month.',
     'quota.serverfull':'Monthly quota reached for this action (checked server-side). The counter resets at the start of next month.',
     'quota.remaining':'{n} / {quota} left this month',
-    'quota.perunit.hint':'{price} MAD per {label} — {n} generated this month ({total} MAD)',
+    'quota.perunit.hint':'{price} $ per {label} — {n} generated this month ({total} $)',
     'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
     'plan.quota.unlimited.line':'Unlimited {label}', 'quota.unlimited':'unlimited',
     'unit.per.month':'/ month', 'unit.per.quarter':'/ 3 months', 'unit.per.year':'/ year',
-    'plan.price.alt':'or {price} MAD {per}',
+    'plan.price.alt':'or {price} $ {per}',
     'period.month':'per month', 'period.quarter':'per 3 months', 'period.year':'per year',
     'admin.plans.pricealt':'Option:', 'admin.plans.quota.unlimited.hint':'Enter -1 for an unlimited quota.',
     'entretien.couleur':'Water colour', 'entretien.couleur.clair':'Clear', 'entretien.couleur.jaune':'Yellowish', 'entretien.couleur.vert':'Green',
@@ -3375,7 +3448,7 @@ const I18N = {
     'admin.part.title':'حسابات الأفراد', 'admin.part.hint':'مرتبطة بشركة أو مستقلة',
     'admin.access.grant':'وصول يدوي', 'admin.access.activate':'تفعيل', 'admin.access.cancel':'إلغاء',
     'admin.access.manual':'وصول يدوي', 'admin.access.expired':'انتهى الوصول اليدوي', 'admin.access.unlimited':'غير محدود',
-    'admin.access.revoke':'إلغاء الوصول', 'admin.access.revoke.confirm':'هل تريد إلغاء الوصول اليدوي لهذا الحساب؟ سيُقفل مجددًا إلى أن يُفعَّل اشتراك Stripe.',
+    'admin.access.revoke':'إلغاء الوصول', 'admin.access.revoke.confirm':'هل تريد إلغاء الوصول اليدوي لهذا الحساب؟ سيُقفل مجددًا إلى أن يُفعَّل اشتراك Paddle.',
     'admin.access.until.hint':'تاريخ الانتهاء (اختياري) — اتركه فارغًا للوصول اليدوي غير المحدود، قابل للإلغاء في أي وقت.',
     'admin.access.cps.na':'باقة CPS — بدون قفل',
     'admin.create.new':'حساب جديد', 'admin.create.title':'إنشاء حساب',
@@ -3405,7 +3478,7 @@ const I18N = {
     'plan.feat.devicscpsunlimited':'عروض أسعار ودفاتر شروط غير محدودة', 'plan.feat.supportpriority':'دعم ذو أولوية',
     'plan.feat.clientsunlimited':'عملاء أفراد غير محدودين', 'plan.feat.multiagences':'وكالات متعددة',
     'plan.feat.apiexport':'واجهة برمجية وتصدير محاسبي', 'plan.feat.accountmanager':'مدير حساب مخصص',
-    'unit.mad.mois':'درهم / شهر', 'unit.mad.per':'درهم / {cat}',
+    'unit.mad.mois':'$ / شهر', 'unit.mad.per':'$ / {cat}',
     'admin.settings.title':'الصيغ والعتبات الافتراضية', 'admin.settings.hint':'مطبقة على جميع حسابات الشركات (للقراءة فقط في هذا النموذج الأولي)',
     'settings.filtration.title':'الترشيح', 'settings.filtration.speed':'سرعة الترشيح المعتمدة:', 'settings.filtration.rule':'قاعدة إرشادية للمدة: درجة حرارة الماء ÷ 2',
     'settings.chauffage.title':'التسخين', 'settings.chauffage.kwh':'رفع 1 م³ بدرجة 1° ≈', 'settings.chauffage.cop':'معامل الأداء المتوسط للمضخة الحرارية المعتمد:',
@@ -3604,23 +3677,23 @@ const I18N = {
     'cps.sign.maitre':'صاحب المشروع', 'cps.sign.readapproved':'قُرئ ووُوفق عليه، التاريخ والتوقيع',
     'cps.disclaimer':'دفتر الشروط هذا نموذج إرشادي تم إنشاؤه تلقائيًا انطلاقًا من دراستكم التقنية. يجب مراجعته والتحقق منه من طرف محترف (تقنيًا وقانونيًا) قبل أن تكون له أي قيمة تعاقدية.',
     'cps.credits.balance':'أرصدة CPS المتاحة: {n}',
-    'cps.pay.btn':'ادفع 400 درهم وأنشئ الوثيقة',
+    'cps.pay.btn':'ادفع 40 دولارًا وأنشئ الوثيقة',
     'cps.generate.btn':'إنشاء الوثيقة (رصيد CPS واحد)',
     'cps.pay.received':'تم استلام الدفع — يمكنك إنشاء وثيقتك.',
-    'cps.credits.none':'لا يوجد رصيد CPS متاح. ادفع 400 درهم لإنشاء هذه الوثيقة.',
-    'cps.abon.note':'باقة CPS تُدفع لكل وثيقة (400 درهم)، دون اشتراك أو فترة تجريبية. انتقل إلى باقة أدناه للحصول على صيغة شهرية.',
+    'cps.credits.none':'لا يوجد رصيد CPS متاح. ادفع 40 دولارًا لإنشاء هذه الوثيقة.',
+    'cps.abon.note':'باقة CPS تُدفع لكل وثيقة (40 دولارًا)، دون اشتراك أو فترة تجريبية. انتقل إلى باقة أدناه للحصول على صيغة شهرية.',
     'abon.checkout.cps':'تم تأكيد دفع CPS — سيُضاف رصيدك خلال ثوانٍ.',
     'abon.currentplan':'الباقة الحالية: {plan}', 'abon.renewal':'التجديد التلقائي في 09/01/2026', 'abon.usage.title':'الاستخدام هذا الشهر',
     'abon.devisgeneres':'عروض الأسعار المنشأة هذا الشهر', 'abon.changeplan':'تغيير الباقة', 'abon.billing':'الفوترة',
-    'abon.billing.note':'سجل الفوترة، فواتير PDF وتغيير البطاقة: في «إدارة اشتراكي» (بوابة Stripe).',
-    'abon.current':'الباقة الحالية', 'abon.choose':'اختيار هذه الباقة', 'abon.choose.alt':'أو {price} درهم {per}',
+    'abon.billing.note':'سجل الفوترة، فواتير PDF وتغيير البطاقة: في «إدارة اشتراكي» (بوابة Paddle).',
+    'abon.current':'الباقة الحالية', 'abon.choose':'اختيار هذه الباقة', 'abon.choose.alt':'أو {price} $ {per}',
     'abon.manage':'إدارة اشتراكي', 'abon.nosub':'لا يوجد اشتراك إلكتروني نشط.', 'abon.plans.title':'الباقات المتاحة',
     'abon.expired':'الاشتراك غير نشط — تم تعليق الوصول إلى الأدوات. اختر باقة أدناه لإعادة تفعيله.',
     'abon.trial.active':'الفترة التجريبية المجانية جارية — تبقّى {n} يوم/أيام. اختر باقة للاستمرار دون انقطاع.',
     'abon.trial.ended':'انتهت فترتك التجريبية المجانية — اختر باقة لاستعادة الوصول إلى الأدوات.',
     'abon.demo.note':'وضع تجريبي: تغيير الباقة فوري وبدون دفع.',
     'abon.cancelscheduled':'الإلغاء مجدول — يبقى الوصول نشطًا حتى نهاية الفترة المدفوعة.',
-    'abon.admintest.note':'معاينة المشرف: الدفع عبر Stripe معطّل هنا. اختبره من حساب أعمال حقيقي.',
+    'abon.admintest.note':'معاينة المشرف: الدفع عبر Paddle معطّل هنا. اختبره من حساب أعمال حقيقي.',
     'abon.checkout.ok':'تم تأكيد الدفع. ستُفعّل باقتك خلال ثوانٍ.',
     'abon.checkout.cancel':'أُلغي الدفع — لم تتغيّر أي باقة.',
     'abon.checkout.err':'تعذّر فتح صفحة الدفع:', 'abon.portal.err':'تعذّر فتح إدارة الاشتراك:',
@@ -3628,7 +3701,7 @@ const I18N = {
     'abon.manual.expired':'انتهى وصولك اليدوي. تواصل معنا لتجديده، أو اختر باقة أدناه للدفع عبر الإنترنت.',
     'abon.manual.note':'وصول تتم إدارته يدويًا من طرف فريقنا — بدون بطاقة مسجّلة.',
     'abon.status.active':'نشط', 'abon.status.trialing':'تجربة', 'abon.status.past_due':'دفع متأخر',
-    'abon.status.canceled':'ملغى', 'abon.status.unpaid':'غير مدفوع', 'abon.status.incomplete':'غير مكتمل', 'abon.status.incomplete_expired':'منتهٍ',
+    'abon.status.canceled':'ملغى', 'abon.status.paused':'موقوف',
     'abon.status.manual':'وصول يدوي',
     'abon.changeplan.confirm':'الانتقال إلى باقة «{plan}» الآن؟ التغيير فوري ويحل محل باقتك الحالية.',
     'part.bassin.title':'ملف مسبحي', 'part.bassin.forme':'الشكل', 'part.bassin.summary':'ملخص',
@@ -3646,11 +3719,11 @@ const I18N = {
     'quota.exhausted':'لقد بلغت حصتك الشهرية لهذا الإجراء. سيتم إعادة تعيينها الشهر المقبل.',
     'quota.serverfull':'تم بلوغ الحصة الشهرية لهذا الإجراء (تحقّق من جهة الخادم). يبدأ العدّاد من جديد مطلع الشهر القادم.',
     'quota.remaining':'{n} / {quota} متبقٍ هذا الشهر',
-    'quota.perunit.hint':'{price} درهم لكل {label} — تم إنشاء {n} هذا الشهر ({total} درهم)',
+    'quota.perunit.hint':'{price} $ لكل {label} — تم إنشاء {n} هذا الشهر ({total} $)',
     'plan.cps.name':'دفتر الشروط', 'plan.proprietaire.name':'مالك', 'plan.installateur.name':'مُركِّب', 'plan.business.name':'بزنس', 'plan.businesspro.name':'بزنس برو',
     'plan.quota.unlimited.line':'{label} بلا حدود', 'quota.unlimited':'بلا حدود',
     'unit.per.month':'/ شهر', 'unit.per.quarter':'/ 3 أشهر', 'unit.per.year':'/ سنة',
-    'plan.price.alt':'أو {price} درهم {per}',
+    'plan.price.alt':'أو {price} $ {per}',
     'period.month':'شهريًا', 'period.quarter':'كل 3 أشهر', 'period.year':'سنويًا',
     'admin.plans.pricealt':'خيار:', 'admin.plans.quota.unlimited.hint':'أدخل -1 لحصة غير محدودة.',
     'entretien.couleur':'لون الماء', 'entretien.couleur.clair':'صافٍ', 'entretien.couleur.jaune':'مصفرّ', 'entretien.couleur.vert':'أخضر',
@@ -3963,7 +4036,7 @@ function aqFooter(){
     </div>
     <div class="aq-footer-bar">
       <span>© ${year} AquaLC. Tous droits réservés.</span>
-      <span>Paiements sécurisés par Stripe</span>
+      <span>Paiements sécurisés par Paddle</span>
     </div>
   </footer>`;
 }
@@ -4073,8 +4146,8 @@ function viewPublicPricing(){
     const feat = id==='business';
     const perUnit = p.billing==='perUnit';
     const price = perUnit
-      ? `<b>${fmt(p.priceMAD)}</b> <span>MAD / document</span>`
-      : `<b>${fmt(p.priceMAD)}</b> <span>MAD ${periodSuffix(p.pricePeriod||'month')}</span>${p.priceAltMAD>0&&p.priceAltPeriod?`<span style="display:block;margin-top:3px;">ou ${fmt(p.priceAltMAD)} MAD ${periodSuffix(p.priceAltPeriod)}</span>`:''}`;
+      ? `<b>$${fmt(p.priceMAD)}</b> <span>/ document</span>`
+      : `<b>$${fmt(p.priceMAD)}</b> <span>${periodSuffix(p.pricePeriod||'month')}</span>${p.priceAltMAD>0&&p.priceAltPeriod?`<span style="display:block;margin-top:3px;">ou $${fmt(p.priceAltMAD)} ${periodSuffix(p.priceAltPeriod)}</span>`:''}`;
     const lines = PLAN_QUOTA_KEYS.filter(k=>quotaIncluded(p.quotas[k])).map(k=>`<li>${ic('i-check')}<span>${planFeatureLine(p,k)}</span></li>`).join('')
       + (p.catalogueWrite?`<li>${ic('i-check')}<span>${t('plan.feat.cataloguewrite')}</span></li>`:'')
       + (p.boutique?`<li>${ic('i-check')}<span>${t('plan.feat.boutique')}</span></li>`:'');
@@ -4102,7 +4175,7 @@ function viewPublicPricing(){
       <div class="aq-price-wrap">
         <div class="aq-price-grid">${order.map(card).join('')}</div>
         <p style="text-align:center;margin-top:26px;font-size:12.5px;color:var(--aq-faint);">
-          Prix affichés en dirham marocain (MAD), taxes non comprises. Paiement sécurisé par Stripe, en ligne, partout dans le monde.
+          Prix affichés en dollars US ($), taxes non comprises. Paiement sécurisé par Paddle, en ligne, partout dans le monde.
           <span class="aq-muted-link" data-action="public-go" data-view="docs">Comment choisir ?</span>
         </p>
       </div>
@@ -4151,7 +4224,7 @@ function viewSignup(){
       <div class="aq-authcard wide aq-reveal">
         <span class="aq-eyebrow">Créer un compte</span>
         <h2 style="font-size:1.5rem;margin:10px 0 6px;">Bienvenue sur AquaLC</h2>
-        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'Le CPS se paie 400 MAD par document généré, sans abonnement.':'1 jour d\'essai gratuit, sans carte bancaire.'}</p>
+        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'Le CPS se paie 40 $ par document généré, sans abonnement.':'1 jour d\'essai gratuit, sans carte bancaire.'}</p>
         ${err}
         <div class="aq-field">
           <label>Formule</label>
@@ -4175,8 +4248,8 @@ function viewSignup(){
 function viewDocs(){
   const planBlock = (id, intro, bullets)=>{
     const p = STATE.plans[id]; if(!p) return '';
-    const price = p.billing==='perUnit' ? `${fmt(p.priceMAD)} MAD / document`
-      : `${fmt(p.priceMAD)} MAD ${periodSuffix(p.pricePeriod||'month')}`;
+    const price = p.billing==='perUnit' ? `$${fmt(p.priceMAD)} / document`
+      : `$${fmt(p.priceMAD)} ${periodSuffix(p.pricePeriod||'month')}`;
     return `
       <div class="aq-doc-plan aq-reveal" id="doc-${id}">
         <h3>${esc(planLabel(id))}</h3>
@@ -4221,10 +4294,10 @@ function viewDocs(){
         <h2>Les formules en détail</h2>
 
         ${planBlock('cps',
-          'Formule à l\'usage, sans abonnement : tu construis un cahier des prescriptions spéciales et tu paies 400 MAD au moment de générer le document.',
+          'Formule à l\'usage, sans abonnement : tu construis un cahier des prescriptions spéciales et tu paies 40 $ au moment de générer le document.',
           ['Renseigne le type de projet, le délai, les garanties, les normes et le phasage.',
            'Les articles techniques se pré-remplissent à partir de l\'étude ; tu peux tout modifier et ajouter tes propres clauses.',
-           'Clique « Payer 400 MAD et générer » → paiement carte sécurisé → le PDF s\'ouvre pour impression.',
+           'Clique « Payer 40 $ et générer » → paiement carte sécurisé → le PDF s\'ouvre pour impression.',
            'Aucun engagement : tu paies uniquement les documents que tu produis.'])}
 
         ${planBlock('proprietaire',
@@ -4248,18 +4321,18 @@ function viewDocs(){
            'Catalogue produits <strong>isolé</strong> : tu ajoutes tes propres références et tes prix, invisibles des autres entreprises.',
            'Import de catalogue en masse (copier-coller Excel ou fichier CSV) et export CSV.',
            'Boutique en ligne partageable : une vitrine avec tes produits et tes prix, envoyée à tes clients par lien ou WhatsApp.',
-           'Deux rythmes de facturation : 800 MAD / mois ou 2 000 MAD / 3 mois.'])}
+           'Deux rythmes de facturation : 80 $ / mois ou 200 $ / 3 mois.'])}
 
         ${planBlock('business_pro',
           'Pour le bureau d\'études et la grande structure : tout Business, sans aucune limite d\'usage.',
           ['Toutes les catégories en <strong>illimité</strong> :études, devis, entretien, CPS, stérilisation.',
            'Catalogue et boutique propres, import / export inclus.',
-           'Facturation annuelle : 6 000 MAD / an.'])}
+           'Facturation annuelle : 600 $ / an.'])}
 
         <h2>Compte &amp; facturation</h2>
         <ul>
           <li>L\'essai gratuit d\'un jour démarre à l\'inscription, sans carte. À la fin, tu choisis une formule pour continuer.</li>
-          <li>Changement de formule, mise à jour de carte, factures PDF et résiliation : bouton « Gérer mon abonnement » (portail Stripe).</li>
+          <li>Changement de formule, mise à jour de carte, factures PDF et résiliation : bouton « Gérer mon abonnement » (portail Paddle).</li>
           <li>Une résiliation prend effet à la fin de la période déjà payée ; l\'accès reste ouvert jusque-là.</li>
           <li>Une question ? <span class="aq-link" data-action="public-go" data-view="contact">Contacte-nous</span>.</li>
         </ul>
@@ -4338,9 +4411,9 @@ function viewLegal(kind){
     <h2>4. Formules et paiement</h2>
     <ul>
       <li>Les formules d'abonnement (Propriétaire, Installateur, Business, Business Pro) sont facturées d'avance, par mois, par trimestre ou par an selon la formule choisie.</li>
-      <li>La formule CPS est facturée à l'usage : 400 MAD par document généré, sans abonnement.</li>
-      <li>Les paiements sont traités par Stripe. AquaLC ne stocke aucune donnée de carte bancaire.</li>
-      <li>Les prix sont indiqués en dirham marocain (MAD), hors taxes éventuelles.</li>
+      <li>La formule CPS est facturée à l'usage : 40 $ par document généré, sans abonnement.</li>
+      <li>Les paiements sont traités par Paddle. AquaLC ne stocke aucune donnée de carte bancaire.</li>
+      <li>Les prix sont indiqués en dollars US ($), hors taxes éventuelles.</li>
       <li>La résiliation d'un abonnement prend effet à la fin de la période en cours ; aucun remboursement au prorata n'est dû, sauf disposition légale contraire.</li>
     </ul>
 
@@ -4374,7 +4447,7 @@ function viewLegal(kind){
     <ul>
       <li><strong>Compte</strong> : nom, ville, adresse e-mail, mot de passe (chiffré), formule choisie.</li>
       <li><strong>Contenu métier</strong> : fiches clients, catalogues, études techniques, devis et CPS que tu crées dans l'outil.</li>
-      <li><strong>Facturation</strong> : identifiant client Stripe, statut d'abonnement, historique des paiements. Les données de carte sont détenues par Stripe, jamais par AquaLC.</li>
+      <li><strong>Facturation</strong> : identifiant client Paddle, statut d'abonnement, historique des paiements. Les données de carte sont détenues par Paddle, jamais par AquaLC.</li>
       <li><strong>Techniques</strong> : journaux de connexion et d'erreur strictement nécessaires au fonctionnement.</li>
     </ul>
 
@@ -4388,7 +4461,7 @@ function viewLegal(kind){
     <h2>4. Sous-traitants</h2>
     <ul>
       <li><strong>Supabase</strong> :hébergement de la base de données et authentification.</li>
-      <li><strong>Stripe</strong> :traitement des paiements et gestion des abonnements.</li>
+      <li><strong>Paddle</strong> :traitement des paiements et gestion des abonnements.</li>
       <li><strong>Cloudflare</strong> :diffusion et sécurité de l'application.</li>
     </ul>
 
@@ -4953,7 +5026,7 @@ function viewAdminOverview(){
 // dans le tableau (business ou particulier), ou null si aucun n'est ouvert.
 let manualAccessOpenId = null;
 // Cellule "Accès" des tableaux admin Business/Particuliers : bouton pour accorder un
-// accès manuel (client qui paie en espèces / hors Stripe), badge + révocation une fois actif.
+// accès manuel (client qui paie en espèces / hors Paddle), badge + révocation une fois actif.
 function adminAccessCell(acc, kind){
   const isManual = acc.stripeStatus === 'manual';
   if(isManual){
@@ -4984,14 +5057,14 @@ function bindAdminManualAccess(list, push){
     const untilDate = dateInput && dateInput.value ? dateInput.value : '';
     const untilIso = untilDate ? new Date(untilDate+'T23:59:59').toISOString() : null;
     x.stripeStatus = 'manual'; x.manualAccessUntil = untilIso; x.stripeCancelAtEnd = false;
-    push(x, { stripe_subscription_status:'manual', manual_access_until:untilIso, stripe_subscription_id:null, stripe_cancel_at_period_end:false });
+    push(x, { paddle_subscription_status:'manual', manual_access_until:untilIso, paddle_subscription_id:null, paddle_cancel_at_period_end:false });
     manualAccessOpenId = null; saveState(); render();
   }));
   $$('[data-action="manual-revoke"]').forEach(b=> b.addEventListener('click', ()=>{
     if(!confirm(t('admin.access.revoke.confirm'))) return;
     const x = list.find(x=>x.id===b.dataset.id); if(!x) return;
     x.stripeStatus = null; x.manualAccessUntil = null;
-    push(x, { stripe_subscription_status:null, manual_access_until:null });
+    push(x, { paddle_subscription_status:null, manual_access_until:null });
     saveState(); render();
   }));
 }
@@ -5162,7 +5235,7 @@ function bindAdminBusinesses(){
   const exp = $('[data-action="export-admin-biz"]');
   if(exp) exp.addEventListener('click', ()=>{
     downloadCSV('comptes-business-aqualc.csv',
-      ['Société','Ville','Plan','Inscription','Nb clients','Statut','Abonnement Stripe','Essai jusqu\'au','Accès manuel jusqu\'au'],
+      ['Société','Ville','Plan','Inscription','Nb clients','Statut','Abonnement Paddle','Essai jusqu\'au','Accès manuel jusqu\'au'],
       STATE.businesses.map(b=>[
         b.nom, b.ville||'', planLabel(b.plan), b.inscription||'',
         STATE.particuliers.filter(p=>p.businessId===b.id).length,
@@ -5215,7 +5288,7 @@ function bindAdminParticuliers(){
   const exp = $('[data-action="export-admin-part"]');
   if(exp) exp.addEventListener('click', ()=>{
     downloadCSV('comptes-particuliers-aqualc.csv',
-      ['Nom','Ville','Rattaché à','Plan','Volume (m³)','Statut','Abonnement Stripe','Accès manuel jusqu\'au'],
+      ['Nom','Ville','Rattaché à','Plan','Volume (m³)','Statut','Abonnement Paddle','Accès manuel jusqu\'au'],
       STATE.particuliers.map(p=>{
         const biz = STATE.businesses.find(b=>b.id===p.businessId);
         return [p.nom, p.ville||'', biz? biz.nom : t('status.indépendant'), planLabel(p.plan), p.volume||'', p.statut||'', p.stripeStatus||'',
@@ -7087,8 +7160,12 @@ function bindCps(role, standalone){
     const payBtn = $('[data-action="cps-pay"]');
     if(payBtn) payBtn.addEventListener('click', async ()=>{
       payBtn.disabled = true;
+      // Paddle's overlay opens on top of the page (no navigation away), so the
+      // button re-enables as soon as the call returns, whether it opened fine
+      // or failed — the overlay itself, not this flag, prevents double-submits.
       const r = await BACKEND.startCheckout('cps');
-      if(r && r.error){ payBtn.disabled = false; alert(t('abon.checkout.err')+'\n'+r.error); }
+      payBtn.disabled = false;
+      if(r && r.error){ alert(t('abon.checkout.err')+'\n'+r.error); }
     });
     const genBtn = $('[data-action="cps-generate"]');
     if(genBtn) genBtn.addEventListener('click', async ()=>{
@@ -7241,10 +7318,10 @@ function bindParticulierDevis(){
 }
 
 /* ---- Abonnement (business) ---- */
-// Badge d'état d'abonnement Stripe.
+// Badge d'état d'abonnement Paddle.
 function stripeStatusBadge(s){
   if(!s) return '';
-  const map = { active:'ok', trialing:'ok', past_due:'warn', unpaid:'bad', canceled:'neutral', incomplete:'warn', incomplete_expired:'bad', manual:'ok' };
+  const map = { active:'ok', trialing:'ok', past_due:'warn', paused:'bad', canceled:'neutral', manual:'ok' };
   return `<span class="badge ${map[s]||'neutral'}"><span class="badge-dot"></span>${t('abon.status.'+s)||esc(s)}</span>`;
 }
 // Grille de formules à choisir / mettre à niveau (business ou particulier).
@@ -7256,7 +7333,7 @@ function renderPlanChoiceCards(role, currentPlanId){
     const current = p.id===currentPlanId;
     const feats = PLAN_QUOTA_KEYS.filter(k=>quotaIncluded(p.quotas[k]))
       .map(k=>`<div style="font-size:11.8px;color:var(--text-muted);margin-bottom:3px;">${ic('i-check')} ${planFeatureLine(p,k)}</div>`).join('');
-    const priceMain = `<b class="mono" style="font-size:18px;">${fmt(p.priceMAD)}</b> <span style="color:var(--text-faint);font-size:11.5px;">MAD ${periodSuffix(p.pricePeriod||'month')}</span>`;
+    const priceMain = `<b class="mono" style="font-size:18px;">$${fmt(p.priceMAD)}</b> <span style="color:var(--text-faint);font-size:11.5px;">${periodSuffix(p.pricePeriod||'month')}</span>`;
     const altBtn = (p.priceAltMAD>0 && p.priceAltPeriod)
       ? `<button class="btn btn-sm btn-ghost" data-action="abon-choose" data-plan="${p.id}" data-billing="alt">${tf('abon.choose.alt',{price:fmt(p.priceAltMAD), per:periodSuffix(p.priceAltPeriod)})}</button>` : '';
     return `<div class="card" style="${current?'border-color:var(--accent);':''}">
@@ -7298,7 +7375,7 @@ function viewAbonnement(role){
     <div class="grid grid-2">
       <div class="card">
         <div class="card-title">${tf('abon.currentplan',{plan:esc(planLabel(acc.plan))})}</div>
-        <div class="card-sub" style="margin:8px 0 12px;">${fmt(plan.priceMAD)+' '+(plan.billing==='perUnit' ? tf('unit.mad.per',{cat:t('plan.quota.'+plan.perUnitCategory)}) : 'MAD '+periodSuffix(plan.pricePeriod||'month'))} ${hasSub? '· '+stripeStatusBadge(acc.stripeStatus):''}</div>
+        <div class="card-sub" style="margin:8px 0 12px;">${fmt(plan.priceMAD)+' '+(plan.billing==='perUnit' ? tf('unit.mad.per',{cat:t('plan.quota.'+plan.perUnitCategory)}) : '$ '+periodSuffix(plan.pricePeriod||'month'))} ${hasSub? '· '+stripeStatusBadge(acc.stripeStatus):''}</div>
         ${acc.stripeCancelAtEnd ? `<div class="callout warn" style="margin-bottom:12px;">${ic('i-info')}<div>${t('abon.cancelscheduled')}</div></div>`:''}
         ${hasSub && !isManual
           ? `<button class="btn btn-sm" data-action="abon-portal">${ic('i-card')} ${t('abon.manage')}</button>`
@@ -7334,8 +7411,11 @@ function bindAbonChoice(role){
     const planId = b.dataset.plan, billing = b.dataset.billing || 'main';
     if(BACKEND.on){
       b.disabled = true;
+      // Paddle's overlay opens on top of the page (no navigation away), so
+      // re-enable as soon as the call returns rather than waiting for a redirect.
       const r = await BACKEND.startCheckout(planId, billing);
-      if(r && r.error){ b.disabled = false; alert(t('abon.checkout.err')+'\n'+r.error); }
+      b.disabled = false;
+      if(r && r.error){ alert(t('abon.checkout.err')+'\n'+r.error); }
     } else {
       // MODE DÉMO : bascule directe (aucun paiement)
       const acc = accountForRole(role); if(!acc) return;
@@ -7618,14 +7698,15 @@ if(window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEven
 window.addEventListener('hashchange', render); // opening / leaving a shared boutique link
 
 (async function boot(){
-  // Retour de Stripe Checkout / Customer Portal
+  // Retour du portail client Paddle (Paddle's overlay checkout never leaves
+  // the page — only the customer portal redirect uses a query param).
   const qp = new URLSearchParams(location.search);
-  const checkoutResult = qp.get('checkout');
-  if(checkoutResult || qp.get('view')){
+  if(qp.get('view')){
     const clean = location.pathname + location.hash;
     try{ history.replaceState(null, '', clean); }catch(e){}
   }
   if(BACKEND.on){
+    setupPaddle();
     try{
       const { data } = await BACKEND.sb.auth.getSession();
       if(data && data.session){ await BACKEND.hydrate(data.session); }
@@ -7633,29 +7714,14 @@ window.addEventListener('hashchange', render); // opening / leaving a shared bou
       BACKEND.sb.auth.onAuthStateChange((evt)=>{
         if(evt === 'SIGNED_OUT' && !suppressAuthOutRender){ STATE.auth.loggedIn = false; STATE.publicView = 'landing'; render(); }
       });
-      if(checkoutResult === 'success' && STATE.auth.loggedIn){
-        STATE.view = STATE.role==='business' ? 'business.abonnement' : 'particulier.abonnement';
-        checkoutFlash = 'success';
-        justCompletedCheckout = true;
-        // Le webhook peut mettre 1-2 s : on recharge l'état une fois après un court délai.
-        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); justCompletedCheckout = false; } }catch(e){} }, 3000);
-      } else if(checkoutResult === 'cps' && STATE.auth.loggedIn){
-        // Paiement CPS à l'usage : on revient sur l'écran CPS et on recharge le solde de crédits.
-        if(STATE.role === 'particulier') STATE.view = 'particulier.cps';
-        checkoutFlash = 'cps';
-        justCompletedCheckout = true;
-        setTimeout(async ()=>{ try{ const s = (await BACKEND.sb.auth.getSession()).data.session; if(s){ await BACKEND.hydrate(s); render(); justCompletedCheckout = false; } }catch(e){} }, 3000);
-      } else if(checkoutResult === 'cancel'){
-        checkoutFlash = 'cancel';
-      }
-      // Retour du portail client Stripe (?view=abonnement) : on rouvre la page abonnement.
+      // Retour du portail client Paddle (?view=abonnement) : on rouvre la page abonnement.
       if(qp.get('view') === 'abonnement' && STATE.auth.loggedIn){
         STATE.view = STATE.role==='business' ? 'business.abonnement' : 'particulier.abonnement';
       }
     }catch(e){ console.error('backend boot failed', e); }
   } else {
-    // If backend is not available, still clear checkout and render
-    if(checkoutResult || qp.get('view')) saveState();
+    // If backend is not available, still clear the view param and render
+    if(qp.get('view')) saveState();
   }
 
   // Offline mode detection

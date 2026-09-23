@@ -15,3 +15,12 @@ window.AQUA_SUPABASE = {
   anonKey: '',   // Project Settings > API > Project API keys > anon / public
   appOrigin: ''  // adresse publique du site (ex. https://aqualc.com) — pour les liens de boutique
 };
+
+/* Paddle (facturation). Le jeton client est public par nature (comme la clé
+ * anon de Supabase) : il ne peut qu'ouvrir un paiement, jamais débiter ni lire
+ * de données. Paddle Dashboard > Developer Tools > Authentication.
+ */
+window.AQUA_PADDLE = {
+  clientToken: '',        // jeton client Paddle (test_... ou live_...)
+  environment: 'sandbox'  // 'sandbox' en test, 'production' en production
+};

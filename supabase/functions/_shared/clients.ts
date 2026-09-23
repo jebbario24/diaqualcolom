@@ -1,21 +1,31 @@
-// Shared helpers: build a Stripe client and a request-scoped Supabase client.
-import Stripe from "https://esm.sh/stripe@18.5.0?target=deno";
+// Shared helpers: call the Paddle REST API and build request-scoped Supabase clients.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-export function stripeClient(): Stripe {
-  const key = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
-  return new Stripe(key, {
-    apiVersion: "2026-07-29.dahlia",
-    httpClient: Stripe.createFetchHttpClient(),
-  });
+// PADDLE_ENVIRONMENT = "sandbox" | "production" (defaults to sandbox so a
+// missing/misconfigured secret fails safe into test mode, not live billing).
+function paddleApiBase(): string {
+  const env = (Deno.env.get("PADDLE_ENVIRONMENT") ?? "sandbox").toLowerCase();
+  return env === "production" ? "https://api.paddle.com" : "https://sandbox-api.paddle.com";
 }
 
-// Suffixe aléatoire pour l'étiquette de tracking des sessions Checkout.
-export function integrationLabel(base: string): string {
-  const s = Array.from({ length: 8 }, () =>
-    "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]).join("");
-  return `${base}-${s}`;
+// Thin wrapper around the Paddle REST API (https://developer.paddle.com/api-reference).
+// Throws on a non-2xx response so callers don't have to check `error` by hand.
+export async function paddleFetch(path: string, init: RequestInit = {}): Promise<any> {
+  const key = Deno.env.get("PADDLE_API_KEY");
+  if (!key) throw new Error("PADDLE_API_KEY is not configured");
+  const res = await fetch(`${paddleApiBase()}${path}`, {
+    ...init,
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Paddle API ${path} -> ${res.status}: ${body ? JSON.stringify(body) : res.statusText}`);
+  }
+  return body;
 }
 
 // Client that acts AS THE CALLING USER (respects RLS). Use for reads/writes
@@ -29,7 +39,7 @@ export function userClient(req: Request): SupabaseClient {
 }
 
 // Client that bypasses RLS (service role). Use ONLY inside the webhook, where
-// there is no user session and we must update any account from a Stripe event.
+// there is no user session and we must update any account from a Paddle event.
 export function adminClient(): SupabaseClient {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,

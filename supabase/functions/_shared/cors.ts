@@ -1,6 +1,5 @@
-// Shared CORS headers for the browser-facing functions (create-checkout,
-// create-portal). The webhook is called by Stripe server-to-server and does
-// not need CORS.
+// Shared CORS headers for the browser-facing functions (create-portal).
+// The webhook is called by Paddle server-to-server and does not need CORS.
 //
 // AQUA_APP_ORIGIN is set with:
 //   supabase secrets set AQUA_APP_ORIGIN=https://app.aqualc.com

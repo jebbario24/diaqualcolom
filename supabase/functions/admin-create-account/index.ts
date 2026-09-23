@@ -5,7 +5,7 @@
 // Lets the admin create a Business or Particulier account (including the CPS plan,
 // which is just a 'particulier' account on the 'cps' plan) directly from the admin
 // console, for customers who sign up in person and prefer to pay offline instead of
-// through the public signup + Stripe flow.
+// through the public signup + Paddle flow.
 //
 // Only an authenticated admin may call this (checked via the is_admin() RPC, which
 // reads the caller's OWN JWT — see _shared/clients.ts:userClient). The account is
