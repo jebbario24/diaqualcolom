@@ -3958,18 +3958,17 @@ function restoreFocus(info){
 // Coordonnées affichées sur la page Contact + footer. À adapter à ton entreprise.
 const AQUA_CONTACT = {
   email:    'contact@aqualc.ma',
-  tel:      '+212 619 344 977',
-  whatsapp: '212619344977',             // format international sans "+", pour le lien wa.me
-  ville:    'Casablanca, Maroc',
+  tel:      '+1 872 284 3005',
+  whatsapp: '18722843005',             // format international sans "+", pour le lien wa.me
+  ville:    'Albuquerque, NM, USA',
 };
 // Legal entity identity for the Terms/Privacy pages (viewLegal below). AquaLC
-// bills through a US entity via Paddle (merchant of record) — fill these in
-// with real values before Paddle verification / going live.
+// bills through a US entity via Paddle (merchant of record).
 const AQUA_LEGAL_ENTITY = {
-  name:         '[Legal company name, e.g. "AquaLC Inc."]',
-  entityType:   '[entity type & state, e.g. "a Delaware C-Corporation"]',
-  address:      '[registered business address]',
-  jurisdiction: '[governing-law state, e.g. "the State of Delaware"]',
+  name:         'Zaboony LLC',
+  entityType:   'a New Mexico Limited Liability Company (Entity ID: 0008112588)',
+  address:      '1209 Mountain Road Pl NE Ste R, Albuquerque, NM 87110',
+  jurisdiction: 'the State of New Mexico',
 };
 const AQ_PUBLIC_VIEWS = ['landing','pricing','docs','contact','login','signup','terms','privacy'];
 function renderPublic(focusInfo){
