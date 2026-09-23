@@ -3962,6 +3962,15 @@ const AQUA_CONTACT = {
   whatsapp: '212619344977',             // format international sans "+", pour le lien wa.me
   ville:    'Casablanca, Maroc',
 };
+// Legal entity identity for the Terms/Privacy pages (viewLegal below). AquaLC
+// bills through a US entity via Paddle (merchant of record) — fill these in
+// with real values before Paddle verification / going live.
+const AQUA_LEGAL_ENTITY = {
+  name:         '[Legal company name, e.g. "AquaLC Inc."]',
+  entityType:   '[entity type & state, e.g. "a Delaware C-Corporation"]',
+  address:      '[registered business address]',
+  jurisdiction: '[governing-law state, e.g. "the State of Delaware"]',
+};
 const AQ_PUBLIC_VIEWS = ['landing','pricing','docs','contact','login','signup','terms','privacy'];
 function renderPublic(focusInfo){
   let view = STATE.publicView || 'landing';
@@ -4396,7 +4405,7 @@ function viewLegal(kind){
     <div class="aq-note">${ic('i-info')}<div>Modèle à faire relire par un conseil juridique avant publication. Complète les mentions entre crochets avec les informations de ton entreprise.</div></div>
 
     <h2>1. Éditeur</h2>
-    <p>Le service AquaLC (« le Service ») est édité par <strong>[Raison sociale]</strong>, [forme juridique] au capital de [montant], dont le siège est à ${esc(AQUA_CONTACT.ville)}. RC [numéro], ICE [numéro], IF [numéro]. Contact : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
+    <p>Le service AquaLC (« le Service ») est édité par <strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.entityType)}, dont le siège est à ${esc(AQUA_LEGAL_ENTITY.address)}. Contact : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
 
     <h2>2. Objet</h2>
     <p>AquaLC est un outil d'aide au dimensionnement d'installations de piscine et à la production de documents commerciaux (devis, cahiers des prescriptions spéciales). Il s'adresse aux professionnels de la piscine et aux propriétaires de bassin.</p>
@@ -4433,15 +4442,15 @@ function viewLegal(kind){
     <p>Tu peux résilier à tout moment depuis le portail de gestion d'abonnement. L'éditeur peut suspendre un compte en cas de non-paiement ou d'usage contraire aux présentes conditions.</p>
 
     <h2>10. Droit applicable</h2>
-    <p>Les présentes conditions sont régies par le droit de [pays/juridiction de l'éditeur]. Tout litige relève des tribunaux compétents de [ville].</p>
+    <p>Les présentes conditions sont régies par le droit de ${esc(AQUA_LEGAL_ENTITY.jurisdiction)}. Tout litige relève des tribunaux compétents de cette juridiction.</p>
   `;
   const privacy = `
     <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Politique de confidentialité</h1>
     <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Dernière mise à jour : ${today}</p>
-    <div class="aq-note">${ic('i-info')}<div>Modèle à adapter et à faire relire. Vérifie la conformité avec la réglementation sur les données personnelles applicable à ton entreprise et à tes utilisateurs (par ex. RGPD dans l'UE, loi 09-08 au Maroc).</div></div>
+    <div class="aq-note">${ic('i-info')}<div>Modèle à adapter et à faire relire. Vérifie la conformité avec la réglementation sur les données personnelles applicable à ton entreprise et à tes utilisateurs (par ex. CCPA en Californie, RGPD pour les utilisateurs dans l'UE).</div></div>
 
     <h2>1. Responsable du traitement</h2>
-    <p><strong>[Raison sociale]</strong>, ${esc(AQUA_CONTACT.ville)}. Pour toute question relative à tes données : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
+    <p><strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>, ${esc(AQUA_LEGAL_ENTITY.address)}. Pour toute question relative à tes données : <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a>.</p>
 
     <h2>2. Données collectées</h2>
     <ul>
