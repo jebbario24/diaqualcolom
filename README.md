@@ -2,7 +2,7 @@
 
 **AquaLC** is a web platform for the swimming pool industry. It lets pool installers and businesses generate quotes and technical specification documents (CPS), manage a shared product catalogue, and run pool-sizing calculators — while individual pool owners get self-service tools for maintenance, heating, water treatment and hydraulics.
 
-Built for an international market: currency is configurable per business/quote (defaults to MAD, but any currency can be set), and the platform is not tied to a single country's market.
+Built for an international market: currency is configurable per business/quote (defaults to USD, but any currency can be set), and the platform is not tied to a single country's market.
 
 A single-page app (vanilla JS, no build step) backed by Supabase (auth, Postgres, Edge Functions) for data, and Paddle for subscription billing. Deployed as a static site on Cloudflare Workers.
 
