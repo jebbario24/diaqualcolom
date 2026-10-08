@@ -1338,7 +1338,7 @@ function normalizeState(){
   if(STATE.auth.adminTestActive===undefined) STATE.auth.adminTestActive = false;
   if(STATE.auth.adminTestPrevBusinessId===undefined) STATE.auth.adminTestPrevBusinessId = null;
   if(STATE.auth.adminTestPrevParticulierId===undefined) STATE.auth.adminTestPrevParticulierId = null;
-  if(!STATE.publicView || !['landing','pricing','login','signup'].includes(STATE.publicView)) STATE.publicView = 'landing';
+  if(!STATE.publicView || !['landing','pricing','docs','contact','login','signup','terms','privacy','refund'].includes(STATE.publicView)) STATE.publicView = 'landing';
   if(!STATE.signupPlan) STATE.signupPlan = 'proprietaire';
   // STATE.plans holds the live, admin-editable plan data (price, quotas, catalogue-write).
   // Seeded from PLAN_DEFAULTS on first load; any plan added later by an app update is
@@ -3946,7 +3946,7 @@ const AQUA_LEGAL_ENTITY = {
   address:      '1209 Mountain Road Pl NE Ste R, Albuquerque, NM 87110',
   jurisdiction: 'the State of New Mexico',
 };
-const AQ_PUBLIC_VIEWS = ['landing','pricing','docs','contact','login','signup','terms','privacy'];
+const AQ_PUBLIC_VIEWS = ['landing','pricing','docs','contact','login','signup','terms','privacy','refund'];
 function renderPublic(focusInfo){
   let view = STATE.publicView || 'landing';
   if(!AQ_PUBLIC_VIEWS.includes(view)) view = 'landing';
@@ -3960,6 +3960,7 @@ function renderPublic(focusInfo){
     : view==='signup'  ? viewSignup()
     : view==='terms'   ? viewLegal('terms')
     : view==='privacy' ? viewLegal('privacy')
+    : view==='refund'  ? viewLegal('refund')
     : viewLanding();
   app.innerHTML = `
     <div class="public-shell aq-pub">
@@ -4014,7 +4015,7 @@ function aqFooter(){
         </div>
         <div>
           <h4>Legal</h4>
-          ${link('terms','Terms of Service')}${link('privacy','Privacy')}
+          ${link('terms','Terms of Service')}${link('privacy','Privacy')}${link('refund','Refund Policy')}
         </div>
       </div>
     </div>
@@ -4222,7 +4223,7 @@ function viewSignup(){
         <div class="aq-field"><label>Confirm password</label><input class="aq-input" id="signup-password-confirm" type="password" placeholder="••••••••" value="${esc(signupDraft.passwordConfirm)}"></div>
         <button class="aq-btn aq-btn-primary" style="width:100%;margin-top:6px;" data-action="do-signup">Create my account</button>
         <p style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--aq-silver);">Already have an account? <span class="aq-link" data-action="public-go" data-view="login">Log in</span></p>
-        <p style="text-align:center;margin-top:10px;font-size:11px;color:var(--aq-faint);">By creating an account, you agree to our <span class="aq-muted-link" data-action="public-go" data-view="terms">Terms of Service</span> and our <span class="aq-muted-link" data-action="public-go" data-view="privacy">Privacy Policy</span>.</p>
+        <p style="text-align:center;margin-top:10px;font-size:11px;color:var(--aq-faint);">By creating an account, you agree to our <span class="aq-muted-link" data-action="public-go" data-view="terms">Terms of Service</span> our <span class="aq-muted-link" data-action="public-go" data-view="privacy">Privacy Policy</span>, and our <span class="aq-muted-link" data-action="public-go" data-view="refund">Refund Policy</span>.</p>
       </div>
     </div>
   `;
@@ -4398,7 +4399,7 @@ function viewLegal(kind){
       <li>The CPS plan is billed per use: $40 per document generated, no subscription.</li>
       <li>Payments are processed by Paddle. AquaLC does not store any card data.</li>
       <li>Prices are shown in US dollars ($), exclusive of any applicable taxes.</li>
-      <li>Canceling a subscription takes effect at the end of the current billing period; no prorated refund is owed, except where required by law.</li>
+      <li>Canceling a subscription takes effect at the end of the current billing period; no prorated refund is owed, except as described in our Refund Policy or where required by law.</li>
     </ul>
 
     <h2>5. Quotas</h2>
@@ -4461,16 +4462,49 @@ function viewLegal(kind){
     <h2>8. Security</h2>
     <p>Passwords are stored hashed, connections are encrypted (HTTPS), and data access is scoped per account at the database level (Row Level Security).</p>
   `;
+
+  const refund = `
+    <h1 style="font-size:clamp(1.9rem,4vw,2.8rem);">Refund Policy</h1>
+    <p style="color:var(--aq-faint);font-size:12.5px;margin-bottom:8px;">Last updated: ${today}</p>
+    <div class="aq-note">${ic('i-info')}<div>Template — adjust the periods and conditions to your business and have it reviewed by legal counsel.</div></div>
+
+    <h2>1. Overview</h2>
+    <p>AquaLC is operated by <strong>${esc(AQUA_LEGAL_ENTITY.name)}</strong>. Payments are processed by <strong>Paddle</strong>, our merchant of record, which handles billing and refunds on our behalf.</p>
+
+    <h2>2. Subscription plans</h2>
+    <ul>
+      <li>Every subscription plan includes a one-day free trial with no card required, so you can test the service before paying.</li>
+      <li>If you're charged for a new subscription (monthly, quarterly, or yearly), you may request a full refund within <strong>14 days</strong> of that first payment.</li>
+      <li>Renewal payments are not refundable once the new billing period has started. You can cancel at any time to avoid future charges.</li>
+      <li>Cancelling takes effect at the end of the current paid period; access remains active until then.</li>
+    </ul>
+
+    <h2>3. CPS plan (pay per document)</h2>
+    <ul>
+      <li>The $40 CPS payment is refundable if you haven't yet generated the document (the CPS credit is unused).</li>
+      <li>Once a document has been generated, the payment is not refundable, since the digital product has been delivered.</li>
+    </ul>
+
+    <h2>4. Billing errors</h2>
+    <p>If you were charged twice, charged the wrong amount, or charged after a cancellation, contact us and we'll correct it, regardless of the periods above.</p>
+
+    <h2>5. How to request a refund</h2>
+    <p>Write to <a href="mailto:${AQUA_CONTACT.email}">${AQUA_CONTACT.email}</a> from the email address on your account, with the date of the payment and the reason for your request. You can also request it through Paddle using the receipt email you received. Approved refunds are returned to your original payment method and typically appear within 5–10 business days.</p>
+
+    <h2>6. Legal rights</h2>
+    <p>Nothing in this policy limits any refund or withdrawal rights you have under the consumer protection laws of your country.</p>
+  `;
   return `
     <section class="aq-section" style="border-top:none;padding-top:56px;">
       <div class="aq-prose aq-reveal">
         <span class="aq-eyebrow" style="margin-bottom:8px;">Legal</span>
-        ${kind==='privacy'? privacy : terms}
+        ${kind==='privacy'? privacy : kind==='refund'? refund : terms}
         <div style="height:1px;background:var(--aq-line-soft);margin:36px 0 18px;"></div>
-        <p style="font-size:12.5px;color:var(--aq-faint);">
-          ${kind==='privacy'
-            ? `Also see the <span class="aq-link" data-action="public-go" data-view="terms">Terms of Service</span>.`
-            : `Also see the <span class="aq-link" data-action="public-go" data-view="privacy">Privacy Policy</span>.`}
+        <p style="font-size:12.5px;color:var(--aq-faint);display:flex;gap:14px;flex-wrap:wrap;">
+          <span>Also see:</span>
+          ${kind!=='terms'   ? `<span class="aq-link" data-action="public-go" data-view="terms">Terms of Service</span>` : ''}
+          ${kind!=='privacy' ? `<span class="aq-link" data-action="public-go" data-view="privacy">Privacy Policy</span>` : ''}
+          ${kind!=='refund'  ? `<span class="aq-link" data-action="public-go" data-view="refund">Refund Policy</span>` : ''}
         </p>
       </div>
     </section>
