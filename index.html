@@ -2901,7 +2901,7 @@ const I18N = {
     'quota.serverfull':'Quota mensuel atteint pour cette action (vérifié côté serveur). Le compteur repart au début du mois prochain.',
     'quota.remaining':'{n} / {quota} restant(s) ce mois-ci',
     'quota.perunit.hint':'{price} $ par {label} — {n} généré(s) ce mois-ci ({total} $)',
-    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'price.or':'ou', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'price.or':'ou', 'doc.no':'N°', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
     'plan.quota.unlimited.line':'{label} en illimité', 'quota.unlimited':'illimité',
     'unit.per.month':'/ mois', 'unit.per.quarter':'/ 3 mois', 'unit.per.year':'/ an',
     'plan.price.alt':'ou {price} $ {per}',
@@ -3334,7 +3334,7 @@ const I18N = {
     'quota.serverfull':'Monthly quota reached for this action (checked server-side). The counter resets at the start of next month.',
     'quota.remaining':'{n} / {quota} left this month',
     'quota.perunit.hint':'{price} $ per {label} — {n} generated this month ({total} $)',
-    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'or',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'or', 'doc.no':'No.',
     'plan.quota.unlimited.line':'Unlimited {label}', 'quota.unlimited':'unlimited',
     'unit.per.month':'/ month', 'unit.per.quarter':'/ 3 months', 'unit.per.year':'/ year',
     'plan.price.alt':'or {price} $ {per}',
@@ -3764,7 +3764,7 @@ const I18N = {
     'quota.serverfull':'تم بلوغ الحصة الشهرية لهذا الإجراء (تحقّق من جهة الخادم). يبدأ العدّاد من جديد مطلع الشهر القادم.',
     'quota.remaining':'{n} / {quota} متبقٍ هذا الشهر',
     'quota.perunit.hint':'{price} $ لكل {label} — تم إنشاء {n} هذا الشهر ({total} $)',
-    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'أو',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'أو', 'doc.no':'رقم',
     'plan.quota.unlimited.line':'{label} بلا حدود', 'quota.unlimited':'بلا حدود',
     'unit.per.month':'/ شهر', 'unit.per.quarter':'/ 3 أشهر', 'unit.per.year':'/ سنة',
     'plan.price.alt':'أو {price} $ {per}',
@@ -6947,7 +6947,7 @@ function renderDevisTab(){
       ${tpl.logo? `<img class="quote-logo" src="${tpl.logo}">` : `<h1>${esc(tpl.societe||t('default.societe'))}</h1>`}
       <div class="quote-meta">
         <div><b>${t('devis.doctype')}</b></div>
-        <div>N° ${esc(d.numero)}</div>
+        <div>${t('doc.no')} ${esc(d.numero)}</div>
         <div>${t('estimate.date')} ${d.date}</div>
       </div>
     </div>
@@ -6995,9 +6995,59 @@ function renderDevisTab(){
   `;
 }
 
+// Textes par défaut du CPS / spec sheet (phasage, réception, exclusions) par langue.
+// Tant que l'utilisateur ne les a pas modifiés, ils suivent la langue de l'interface ;
+// une liste modifiée (≠ défauts de toutes les langues) n'est jamais touchée.
+const CPS_DEFAULTS = {
+  fr:{ phasageSteps: SEED.cpsForm.phasage.split('\n'),
+       receptionList: SEED.cpsForm.receptionList, exclusionsList: SEED.cpsForm.exclusionsList },
+  en:{ phasageSteps:[
+         'Site setup and excavation',
+         'Structural works (pool shell)',
+         'Waterproofing and finish lining',
+         'Plant room and filtration installation',
+         'Plumbing and electrical connections',
+         'Filling, adjustments and commissioning',
+         'Client training and handover of the technical file'],
+       receptionList:[
+         'Acceptance of the works is carried out jointly by the parties after filling, operating tests of the equipment and verification of compliance with this specification.',
+         'Any reservations are recorded in the acceptance report and must be cleared within 30 days.'],
+       exclusionsList:[
+         'Excavation in difficult ground (rock, groundwater)',
+         'Main electrical supply up to the distribution board',
+         'Final connection to the drinking water network',
+         'Landscaping and unspecified surroundings',
+         'Any work not explicitly mentioned in the attached technical schedule'] },
+  ar:{ phasageSteps:[
+         'التحديد والحفر',
+         'إنجاز الأشغال الكبرى (بنية المسبح)',
+         'العزل المائي والتكسية',
+         'تركيب الغرفة التقنية ونظام الترشيح',
+         'الربط الهيدروليكي والكهربائي',
+         'ملء المسبح والضبط والتشغيل',
+         'تكوين الزبون وتسليم الملف التقني'],
+       receptionList:[
+         'يتم استلام الأشغال حضوريًا بين الطرفين بعد ملء المسبح وإجراء اختبارات تشغيل التجهيزات والتحقق من مطابقتها لمقتضيات دفتر الشروط هذا.',
+         'تُدوَّن كل التحفظات في محضر الاستلام وتُرفع داخل أجل 30 يومًا.'],
+       exclusionsList:[
+         'أشغال الحفر في الأراضي الصعبة (صخور، مياه جوفية)',
+         'التغذية الكهربائية العامة إلى غاية اللوحة الكهربائية',
+         'الربط النهائي بشبكة الماء الصالح للشرب',
+         'تهيئة المساحات الخضراء والمحيط غير المحدد',
+         'كل عمل غير مذكور صراحة في الجدول التقني المرفق'] },
+};
+function localizeCpsDefaults(cf){
+  const lang = CPS_DEFAULTS[STATE.lang] ? STATE.lang : 'en';
+  ['phasageSteps','receptionList','exclusionsList'].forEach(k=>{
+    const cur = JSON.stringify(cf[k]||[]);
+    if(Object.keys(CPS_DEFAULTS).some(l=> l!==lang && JSON.stringify(CPS_DEFAULTS[l][k])===cur))
+      cf[k] = CPS_DEFAULTS[lang][k].slice();
+  });
+}
 function renderCpsTab(role){
   role = role || 'business';
   const tpl = STATE.devisTemplate, d = STATE.devisCourant, cf = STATE.cpsForm;
+  localizeCpsDefaults(cf);
   const etudeF = STATE.bassinParticulier;
   const etude = runEtude(etudeF);
   const hyF = STATE.hydrauliqueForm || {distance:8, filtreD:etude.filtre.d, pac:etudeF.chauffage==='electrique'?false:true};
@@ -7108,7 +7158,7 @@ function renderCpsTab(role){
       ${tpl.logo? `<img class="quote-logo" src="${tpl.logo}">` : `<h1>${esc(tpl.societe||t('default.societe'))}</h1>`}
       <div class="quote-meta">
         <div><b>${t('cps.doctype')}</b></div>
-        <div>N° ${esc(cf.numero)}</div>
+        <div>${t('doc.no')} ${esc(cf.numero)}</div>
         <div>${t('estimate.date')} ${role==='particulier'? new Date().toISOString().slice(0,10) : d.date}</div>
       </div>
     </div>
@@ -7378,7 +7428,7 @@ function viewParticulierDevis(){
       ${tpl.logo? `<img class="quote-logo" src="${tpl.logo}">` : `<h1>${esc(tpl.societe||t('default.societe'))}</h1>`}
       <div class="quote-meta">
         <div><b>${t('devis.doctype')}</b></div>
-        <div>N° ${esc(d.numero)}</div>
+        <div>${t('doc.no')} ${esc(d.numero)}</div>
         <div>${t('estimate.date')} ${new Date().toISOString().slice(0,10)}</div>
       </div>
     </div>
