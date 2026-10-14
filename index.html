@@ -858,7 +858,8 @@ var SUB_DEAD_STATUSES = ['canceled','paused']; // Paddle subscription.status val
 // Abonnement terminé (résilié / impayé / expiré).
 function subInactive(acc){ return !!(acc && SUB_DEAD_STATUSES.indexOf(acc.stripeStatus) >= 0); }
 // Compte sans abonnement Paddle vivant (jamais souscrit, ou résilié).
-function subNever(acc){ return !!(acc && !acc.stripeStatus && (!BACKEND || !BACKEND.on || acc.stripeStatus === undefined)); }
+// (null = colonne paddle_subscription_status vide côté Supabase, undefined = mode démo.)
+function subNever(acc){ return !!(acc && !acc.stripeStatus); }
 // Essai gratuit d'inscription encore en cours (style Shopify, sans carte).
 // Le plan CPS (paiement au document) n'a pas d'essai.
 function trialActive(acc){ return !!(acc && acc.plan !== 'cps' && acc.trialEndsAt && new Date(acc.trialEndsAt) > new Date()); }
@@ -2580,6 +2581,9 @@ const I18N = {
     'admin.access.revoke':'Révoquer', 'admin.access.revoke.confirm':'Révoquer l\'accès manuel de ce compte ? Il redeviendra verrouillé tant qu\'aucun abonnement Paddle n\'est actif.',
     'admin.access.until.hint':'Date de fin (optionnel) — laisser vide pour un accès manuel illimité, révocable à tout moment.',
     'admin.access.cps.na':'Formule CPS — sans verrou',
+    'th.abonnement':'Abonnement', 'admin.sub.trial':'Essai · {h} h restantes', 'admin.sub.locked':'Verrouillé',
+    'admin.sub.trialended':'essai terminé le {date}', 'admin.sub.notrial':'aucun essai',
+    'admin.sub.summary':'{trial} en essai · {locked} verrouillé(s) · {paid} payant(s)',
     'admin.create.new':'Nouveau compte', 'admin.create.title':'Créer un compte',
     'admin.create.nom':'Nom', 'admin.create.ville':'Ville', 'admin.create.email':'E-mail', 'admin.create.plan':'Formule',
     'admin.create.password':'Mot de passe', 'admin.create.genpass':'Générer',
@@ -3005,6 +3009,9 @@ const I18N = {
     'admin.access.revoke':'Revoke', 'admin.access.revoke.confirm':'Revoke this account\'s manual access? It will be locked out again until a Paddle subscription is active.',
     'admin.access.until.hint':'End date (optional) — leave blank for unlimited manual access, revocable anytime.',
     'admin.access.cps.na':'CPS plan — no lock',
+    'th.abonnement':'Subscription', 'admin.sub.trial':'Trial · {h}h left', 'admin.sub.locked':'Locked',
+    'admin.sub.trialended':'trial ended {date}', 'admin.sub.notrial':'no trial',
+    'admin.sub.summary':'{trial} on trial · {locked} locked · {paid} paying',
     'admin.create.new':'New account', 'admin.create.title':'Create an account',
     'admin.create.nom':'Name', 'admin.create.ville':'City', 'admin.create.email':'Email', 'admin.create.plan':'Plan',
     'admin.create.password':'Password', 'admin.create.genpass':'Generate',
@@ -3427,6 +3434,9 @@ const I18N = {
     'admin.access.revoke':'إلغاء الوصول', 'admin.access.revoke.confirm':'هل تريد إلغاء الوصول اليدوي لهذا الحساب؟ سيُقفل مجددًا إلى أن يُفعَّل اشتراك Paddle.',
     'admin.access.until.hint':'تاريخ الانتهاء (اختياري) — اتركه فارغًا للوصول اليدوي غير المحدود، قابل للإلغاء في أي وقت.',
     'admin.access.cps.na':'باقة CPS — بدون قفل',
+    'th.abonnement':'الاشتراك', 'admin.sub.trial':'تجربة · تبقّى {h} ساعة', 'admin.sub.locked':'مقفل',
+    'admin.sub.trialended':'انتهت التجربة في {date}', 'admin.sub.notrial':'بدون تجربة',
+    'admin.sub.summary':'{trial} في التجربة · {locked} مقفل · {paid} مدفوع',
     'admin.create.new':'حساب جديد', 'admin.create.title':'إنشاء حساب',
     'admin.create.nom':'الاسم', 'admin.create.ville':'المدينة', 'admin.create.email':'البريد الإلكتروني', 'admin.create.plan':'الباقة',
     'admin.create.password':'كلمة المرور', 'admin.create.genpass':'توليد',
@@ -5064,6 +5074,30 @@ function adminAccessCell(acc, kind){
   }
   return `<button class="btn btn-sm" data-action="manual-open" data-kind="${kind}" data-id="${acc.id}">${ic('i-card')} ${t('admin.access.grant')}</button>`;
 }
+// Cellule "Abonnement" des tableaux admin : où en est le compte — en essai, verrouillé
+// (essai terminé sans paiement), payant (Paddle) ou accès manuel. Même logique que subBlocked().
+function adminSubCell(acc){
+  if(acc.plan==='cps') return `<span class="hint">${t('admin.access.cps.na')}</span>`;
+  const badge = (cls, label)=> `<span class="badge ${cls}"><span class="badge-dot"></span>${label}</span>`;
+  const hint = s=> `<div class="hint mono" style="margin-top:3px;">${esc(s)}</div>`;
+  if(acc.stripeStatus==='manual') return manualAccessExpired(acc) ? badge('bad', t('admin.sub.locked')) : badge('ok', t('admin.access.manual'));
+  if(acc.stripeStatus && !subInactive(acc)) return stripeStatusBadge(acc.stripeStatus);
+  if(trialActive(acc)){
+    const h = Math.max(1, Math.ceil((new Date(acc.trialEndsAt) - new Date())/3600000));
+    return badge('warn', tf('admin.sub.trial',{h})) + hint(String(acc.trialEndsAt).slice(0,16).replace('T',' '));
+  }
+  const why = acc.stripeStatus ? t('abon.status.'+acc.stripeStatus)
+    : acc.trialEndsAt ? tf('admin.sub.trialended',{date:String(acc.trialEndsAt).slice(0,10)}) : t('admin.sub.notrial');
+  return badge('bad', t('admin.sub.locked')) + hint(why);
+}
+// Résumé au-dessus d'un tableau admin : combien de comptes en essai / verrouillés / payants.
+function adminSubSummary(list){
+  const subs = list.filter(a=>a.plan!=='cps');
+  const trial = subs.filter(a=>!a.stripeStatus && trialActive(a)).length;
+  const locked = subs.filter(a=>subBlocked(a)).length;
+  const paid = subs.filter(a=>a.stripeStatus && a.stripeStatus!=='manual' && !subInactive(a)).length;
+  return `<span class="hint">${tf('admin.sub.summary',{trial, locked, paid})}</span>`;
+}
 // Branche les boutons de la colonne "Accès" (accorder / révoquer un accès manuel) pour
 // un tableau admin donné (business ou particuliers). `push` persiste vers Supabase.
 function bindAdminManualAccess(list, push){
@@ -5219,14 +5253,15 @@ function bindAdminCreateAccount(role){
 function viewAdminBusinesses(){
   return `
     <div class="section-head"><h2>${t('admin.biz.title')} (${STATE.businesses.length})</h2>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${adminSubSummary(STATE.businesses)}
         <button class="btn btn-sm btn-primary" data-action="ac-open">${ic('i-check')} ${t('admin.create.new')}</button>
         ${STATE.businesses.length? `<button class="btn btn-sm" data-action="export-admin-biz">${ic('i-file')} ${t('export.csv')}</button>`:`<span class="hint">${t('admin.biz.hint')}</span>`}
       </div>
     </div>
     ${adminCreateAccountCard('business')}
     <div class="table-wrap"><table>
-      <thead><tr><th>${t('th.societe')}</th><th>${t('th.ville')}</th><th>${t('th.plan')}</th><th>${t('th.inscription')}</th><th>${t('th.clients')}</th><th>${t('th.statut')}</th><th>${t('th.acces')}</th><th></th></tr></thead>
+      <thead><tr><th>${t('th.societe')}</th><th>${t('th.ville')}</th><th>${t('th.plan')}</th><th>${t('th.inscription')}</th><th>${t('th.clients')}</th><th>${t('th.statut')}</th><th>${t('th.abonnement')}</th><th>${t('th.acces')}</th><th></th></tr></thead>
       <tbody>${STATE.businesses.map(b=>`
         <tr data-id="${b.id}">
           <td><b>${esc(b.nom)}</b>${b.isTestAccount?` <span class="badge accent">${t('admin.plans.test.badge')}</span>`:''}</td><td>${esc(b.ville)}</td>
@@ -5234,6 +5269,7 @@ function viewAdminBusinesses(){
           <td class="mono">${b.inscription}</td>
           <td class="num">${STATE.particuliers.filter(p=>p.businessId===b.id).length}</td>
           <td>${statBadge(b.statut)}</td>
+          <td style="white-space:nowrap;">${adminSubCell(b)}</td>
           <td>${adminAccessCell(b, 'business')}</td>
           <td style="text-align:end;white-space:nowrap;">
             ${adminDetailToggleBtn(b.id)}
@@ -5242,7 +5278,7 @@ function viewAdminBusinesses(){
               : `<button class="btn btn-sm btn-primary" data-action="activate" data-id="${b.id}">${t(b.statut==='en attente'?'btn.validate':'btn.reactivate')}</button>`}
           </td>
         </tr>
-        ${b.id===adminDetailId? `<tr><td colspan="8" style="padding:0;background:var(--surface-2);">${viewAdminBusinessDetail(b)}</td></tr>`:''}`).join('')}
+        ${b.id===adminDetailId? `<tr><td colspan="9" style="padding:0;background:var(--surface-2);">${viewAdminBusinessDetail(b)}</td></tr>`:''}`).join('')}
       </tbody>
     </table></div>
     <div class="callout info" style="margin-top:16px;">${ic('i-info')}<div>${t('admin.biz.callout')}</div></div>
@@ -5271,14 +5307,15 @@ function bindAdminBusinesses(){
 function viewAdminParticuliers(){
   return `
     <div class="section-head"><h2>${t('admin.part.title')} (${STATE.particuliers.length})</h2>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${adminSubSummary(STATE.particuliers)}
         <button class="btn btn-sm btn-primary" data-action="ac-open">${ic('i-check')} ${t('admin.create.new')}</button>
         ${STATE.particuliers.length? `<button class="btn btn-sm" data-action="export-admin-part">${ic('i-file')} ${t('export.csv')}</button>`:`<span class="hint">${t('admin.part.hint')}</span>`}
       </div>
     </div>
     ${adminCreateAccountCard('particulier')}
     <div class="table-wrap"><table>
-      <thead><tr><th>${t('th.nom')}</th><th>${t('th.ville')}</th><th>${t('th.rattache')}</th><th>${t('th.plan')}</th><th>${t('th.volume')}</th><th>${t('th.statut')}</th><th>${t('th.acces')}</th><th></th></tr></thead>
+      <thead><tr><th>${t('th.nom')}</th><th>${t('th.ville')}</th><th>${t('th.rattache')}</th><th>${t('th.plan')}</th><th>${t('th.volume')}</th><th>${t('th.statut')}</th><th>${t('th.abonnement')}</th><th>${t('th.acces')}</th><th></th></tr></thead>
       <tbody>${STATE.particuliers.map(p=>{
         const biz = STATE.businesses.find(b=>b.id===p.businessId);
         return `<tr data-id="${p.id}">
@@ -5287,6 +5324,7 @@ function viewAdminParticuliers(){
           <td><select class="input plan-select" data-id="${p.id}" style="padding:5px 8px;min-width:130px;">${plansForRole('particulier').map(pl=>`<option value="${pl.id}" ${p.plan===pl.id?'selected':''}>${esc(planLabel(pl.id))}</option>`).join('')}</select></td>
           <td class="num mono">${p.volume? p.volume+' m³':'—'}</td>
           <td>${statBadge(p.statut)}</td>
+          <td style="white-space:nowrap;">${adminSubCell(p)}</td>
           <td>${p.plan==='cps' ? `<span class="hint">${t('admin.access.cps.na')}</span>` : adminAccessCell(p, 'particulier')}</td>
           <td style="text-align:end;white-space:nowrap;">
             ${adminDetailToggleBtn(p.id)}
@@ -5295,7 +5333,7 @@ function viewAdminParticuliers(){
               : `<button class="btn btn-sm btn-danger-outline" data-action="p-suspend" data-id="${p.id}">${t('btn.suspend')}</button>`}
           </td>
         </tr>
-        ${p.id===adminDetailId? `<tr><td colspan="8" style="padding:0;background:var(--surface-2);">${viewAdminParticulierDetail(p)}</td></tr>`:''}`;
+        ${p.id===adminDetailId? `<tr><td colspan="9" style="padding:0;background:var(--surface-2);">${viewAdminParticulierDetail(p)}</td></tr>`:''}`;
       }).join('')}
       </tbody>
     </table></div>
