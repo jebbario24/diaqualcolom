@@ -2195,6 +2195,51 @@ function computePerimetre(f){
   return round2(2*((parseFloat(f.longueur)||0)+(parseFloat(f.largeur)||0)));
 }
 
+// Noms des produits proposés par les calculateurs, par langue (clé produit -> nom).
+// Le français reste le nom d'origine (p.nom). {d} = diamètre repris de la clé
+// (filtre-600, tube-pvc-63). Les produits sans traduction gardent leur nom.
+const PRODUCT_NAMES = {
+  en:{
+    'filtre':'Sand filter Ø{d}', 'gravier-filtrant':'Quartz gravel 3–5 mm (25 kg bag)',
+    'sable-filtrant':'Silica sand 0.4–0.8 mm (25 kg bag)', 'pompe-filtration':'Filtration pump',
+    'vanne-pvc':'PVC valve / multiport', 'pompe-a-chaleur':'Heat pump', 'rechauffeur-electrique':'Electric heater',
+    'projecteur-led':'LED pool light', 'transfo-12v':'12V safety transformer', 'buse-refoulement':'Return inlet',
+    'skimmer':'Skimmer', 'bonde-fond':'Main drain', 'prise-balai':'Vacuum point',
+    'ph-plus':'pH plus (kg)', 'ph-moins':'pH minus (kg)', 'chlore-choc':'Shock chlorine (kg)',
+    'galets-chlore':'Slow-release chlorine tablets (kg)', 'anti-algue':'Algaecide (L)', 'floculant':'Flocculant (L)',
+    'brosse-bassin':'Pool brush', 'epuisette':'Leaf net', 'perche-telescopique':'Telescopic pole',
+    'trousse-analyse':'Test kit (pH/chlorine)',
+    'tube-pvc':'PVC pressure pipe Ø{d}', 'raccord-union':'PVC union fitting', 'coude-pvc':'PVC elbow 90°',
+    'collier-fixation':'Pipe clamp', 'clapet-anti-retour':'Check valve',
+    'regulateur-ph':'pH regulator', 'regulateur-chlore':'Chlorine regulator', 'regulateur-ph-chlore':'pH/chlorine regulator',
+    'electrolyseur-sel':'Salt chlorinator', 'sel-piscine':'Pool salt (25 kg bag)',
+  },
+  ar:{
+    'filtre':'مرشح رملي Ø{d}', 'gravier-filtrant':'حصى الكوارتز 3–5 مم (كيس 25 كغ)',
+    'sable-filtrant':'رمل السيليكا 0.4–0.8 مم (كيس 25 كغ)', 'pompe-filtration':'مضخة الترشيح',
+    'vanne-pvc':'صمام PVC / متعدد الاتجاهات', 'pompe-a-chaleur':'مضخة حرارية', 'rechauffeur-electrique':'سخان كهربائي',
+    'projecteur-led':'كشاف LED للمسبح', 'transfo-12v':'محول أمان 12 فولط', 'buse-refoulement':'فوهة الدفع',
+    'skimmer':'سكيمر', 'bonde-fond':'مصرف القاع', 'prise-balai':'مأخذ المكنسة',
+    'ph-plus':'رافع pH (كغ)', 'ph-moins':'خافض pH (كغ)', 'chlore-choc':'كلور صدمة (كغ)',
+    'galets-chlore':'أقراص كلور بطيئة الذوبان (كغ)', 'anti-algue':'مضاد الطحالب (ل)', 'floculant':'مادة مُخثِّرة (ل)',
+    'brosse-bassin':'فرشاة المسبح', 'epuisette':'شبكة التنظيف', 'perche-telescopique':'عصا تلسكوبية',
+    'trousse-analyse':'عدة تحليل (pH/كلور)',
+    'tube-pvc':'أنبوب PVC ضغط Ø{d}', 'raccord-union':'وصلة اتحاد PVC', 'coude-pvc':'كوع PVC 90°',
+    'collier-fixation':'مشبك تثبيت', 'clapet-anti-retour':'صمام عدم رجوع',
+    'regulateur-ph':'منظم pH', 'regulateur-chlore':'منظم الكلور', 'regulateur-ph-chlore':'منظم pH/كلور',
+    'electrolyseur-sel':'جهاز التحليل الكهربائي للملح', 'sel-piscine':'ملح المسبح (كيس 25 كغ)',
+  },
+};
+// Détail affiché à côté du nom (puissance pompe, PAC) : CV -> HP hors français.
+function productDetail(d){ return STATE.lang==='fr' ? d : String(d).replace(/\bCV\b/, 'HP').replace('kW therm.', 'kW thermal'); }
+function productName(p){
+  const dict = PRODUCT_NAMES[STATE.lang];
+  if(!dict || !p || !p.key) return p ? p.nom : '';
+  const m = String(p.key).match(/^(filtre|tube-pvc)-(\d+)$/);
+  const s = dict[m ? m[1] : p.key];
+  return s ? s.replace('{d}', m ? m[2] : '') : p.nom;
+}
+
 function runEtude(f){
   const V = computeVolume(f);
   const S = computeSurface(f);
@@ -2292,7 +2337,7 @@ function runEntretien(f){
     {nom:'Trousse d\'analyse (pH/Chlore)', key:'trousse-analyse'},
   ];
 
-  return {V,ph,chlore,couleur,phAction,phProduit,phQty,clAction,clProduit,clQty,produits,materiel,input:f};
+  return {V,ph,chlore,couleur,phAction,phProduit,phProduitKey,phQty,clAction,clProduit,clProduitKey,clQty,produits,materiel,input:f};
 }
 
 function runHydraulique(f){
@@ -5947,7 +5992,7 @@ function viewEtude(role){
 
         <div class="divider"></div>
         <div class="card-title" style="margin-bottom:8px;">${t('etude.produits')}</div>
-        ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(p.nom)}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(p.nom)}${p.detail?' <span style=\'color:var(--text-faint);font-weight:500\'>('+p.detail+')</span>':''}</span><input class="qt devis-qte" data-nom="${esc(p.nom)}" type="text" inputmode="decimal" value="${p.qte}" step="0.1"><span class="un">${p.unite}</span></div>`).join('')}
+        ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}${p.detail?' <span style=\'color:var(--text-faint);font-weight:500\'>('+esc(productDetail(p.detail))+')</span>':''}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.1"><span class="un">${p.unite}</span></div>`).join('')}
 
         ${hasDevisQuota(role)
           ? `<button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>`
@@ -6055,20 +6100,20 @@ function viewEntretien(role){
         </div>
 
         ${r.phAction==='ok' ? `<div class="callout" style="margin-bottom:8px;">${ic('i-check')}<div>${t('entretien.ph.ok')}</div></div>`
-          : `<div class="callout warn" style="margin-bottom:8px;">${ic('i-info')}<div>${tf('entretien.ph.bad',{word:t(r.phAction==='bas'?'entretien.ph.bas':'entretien.ph.haut'), qty:'<b>'+fmt(r.phQty,2)+' kg</b>', produit:'<b>'+r.phProduit+'</b>'})}</div></div>`}
+          : `<div class="callout warn" style="margin-bottom:8px;">${ic('i-info')}<div>${tf('entretien.ph.bad',{word:t(r.phAction==='bas'?'entretien.ph.bas':'entretien.ph.haut'), qty:'<b>'+fmt(r.phQty,2)+' kg</b>', produit:'<b>'+esc(productName({nom:r.phProduit, key:r.phProduitKey}))+'</b>'})}</div></div>`}
 
         ${r.clAction==='eleve' ? `<div class="callout danger" style="margin-bottom:8px;">${ic('i-info')}<div>${t('entretien.cl.eleve')}</div></div>`
-          : r.clAction==='choc' ? `<div class="callout warn" style="margin-bottom:8px;">${ic('i-info')}<div>${tf('entretien.cl.choc',{qty:'<b>'+fmt(r.clQty,2)+' kg</b>', produit:'<b>'+r.clProduit+'</b>'})}</div></div>`
-          : `<div class="callout" style="margin-bottom:8px;">${ic('i-check')}<div>${tf('entretien.cl.ok',{qty:'<b>'+fmt(r.clQty,2)+' kg/sem.</b>', produit:'<b>'+r.clProduit+'</b>'})}</div></div>`}
+          : r.clAction==='choc' ? `<div class="callout warn" style="margin-bottom:8px;">${ic('i-info')}<div>${tf('entretien.cl.choc',{qty:'<b>'+fmt(r.clQty,2)+' kg</b>', produit:'<b>'+esc(productName({nom:r.clProduit, key:r.clProduitKey}))+'</b>'})}</div></div>`
+          : `<div class="callout" style="margin-bottom:8px;">${ic('i-check')}<div>${tf('entretien.cl.ok',{qty:'<b>'+fmt(r.clQty,2)+' kg/sem.</b>', produit:'<b>'+esc(productName({nom:r.clProduit, key:r.clProduitKey}))+'</b>'})}</div></div>`}
 
         ${r.couleur==='vert'? `<div class="callout danger" style="margin-bottom:8px;">${ic('i-info')}<div>${t('entretien.couleur.vert.warn')}</div></div>`
           : r.couleur==='jaune'? `<div class="callout warn" style="margin-bottom:8px;">${ic('i-info')}<div>${t('entretien.couleur.jaune.warn')}</div></div>`:''}
 
         <div class="divider"></div>
         <div class="card-title" style="margin-bottom:8px;">${t('entretien.produits')}</div>
-        ${r.produits.length? r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(p.nom)}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(p.nom)}</span><input class="qt devis-qte" data-nom="${esc(p.nom)}" type="text" inputmode="decimal" value="${p.qte}" step="0.01"><span class="un">${p.unite}</span></div>`).join('') : `<div class="card-sub">${t('entretien.noneneeded')}</div>`}
+        ${r.produits.length? r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.01"><span class="un">${p.unite}</span></div>`).join('') : `<div class="card-sub">${t('entretien.noneneeded')}</div>`}
         <div class="card-title" style="margin:14px 0 8px;">${t('entretien.materiel')}</div>
-        ${r.materiel.map(m=>`<div class="chk-add"><input type="checkbox" class="devis-chk" data-nom="${esc(m.nom)}" data-unite="u" data-key="${esc(m.key||'')}"><span class="nm">${esc(m.nom)}</span><input class="qt devis-qte" data-nom="${esc(m.nom)}" type="text" inputmode="decimal" value="1" step="1"><span class="un">u</span></div>`).join('')}
+        ${r.materiel.map(m=>`<div class="chk-add"><input type="checkbox" class="devis-chk" data-nom="${esc(productName(m))}" data-unite="u" data-key="${esc(m.key||'')}"><span class="nm">${esc(productName(m))}</span><input class="qt devis-qte" data-nom="${esc(productName(m))}" type="text" inputmode="decimal" value="1" step="1"><span class="un">u</span></div>`).join('')}
 
         <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="${role==='business'?'add-to-devis':'save-history'}">${ic(role==='business'?'i-file':'i-check')} ${t(role==='business'?'etude.addtodevis':'entretien.savehistory')}</button>
       </div>
@@ -6121,7 +6166,7 @@ function viewHydraulique(){
         <div class="metric-tile"><div class="l">${t('hydro.vannes')}</div><div class="v">${r.vannes}</div></div>
       </div>
       <div class="card-title" style="margin-bottom:8px;">${t('hydro.postes')}</div>
-      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(p.nom)}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(p.nom)}</span><input class="qt devis-qte" data-nom="${esc(p.nom)}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
+      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
       <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>
       <div class="callout" style="margin-top:12px;">${ic('i-info')}<div>${t('hydro.callout')}</div></div>
     </div>`}
@@ -6179,7 +6224,7 @@ function viewSterilisation(role){
         <div class="metric-tile"><div class="l">${t('steril.sacs')}</div><div class="v">${r.sacs}</div></div>
       </div>
       <div class="card-title" style="margin:10px 0 8px;">${t('hydro.postes')}</div>
-      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" ${p.checked===false?'':'checked'} class="devis-chk" data-nom="${esc(p.nom)}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(p.nom)}</span><input class="qt devis-qte" data-nom="${esc(p.nom)}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
+      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" ${p.checked===false?'':'checked'} class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
       <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>
     </div>`}
   </div>
