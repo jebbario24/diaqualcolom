@@ -2871,6 +2871,7 @@ const I18N = {
     'trial.limit.calc':'Vous avez utilisé le calcul inclus dans votre essai gratuit pour cet outil. Abonnez-vous pour continuer à calculer sans limite d\'essai.',
     'trial.limit.download':'Le téléchargement des devis et des CPS est réservé aux abonnés. Abonnez-vous pour télécharger ce document.',
     'trial.subscribe':'S\'abonner maintenant',
+    'abon.subscribe.plan':'S\'abonner à {plan} — {price}', 'trial.quota.subonly':'réservé aux abonnés',
     'trial.calc.changed':'Pendant l\'essai gratuit, seuls les résultats de votre calcul validé sont affichés. Rouvrez-le depuis l\'historique, ou abonnez-vous pour lancer de nouveaux calculs.',
     'abon.demo.note':'Mode démo : le changement de formule est instantané, sans paiement.',
     'abon.cancelscheduled':'Résiliation programmée : l\'accès reste actif jusqu\'à la fin de la période payée.',
@@ -3302,6 +3303,7 @@ const I18N = {
     'trial.limit.calc':'You\'ve used the calculation included in your free trial for this tool. Subscribe to keep calculating.',
     'trial.limit.download':'Downloading quotes and CPS documents is included with a subscription. Subscribe to download this document.',
     'trial.subscribe':'Subscribe now',
+    'abon.subscribe.plan':'Subscribe to {plan} — {price}', 'trial.quota.subonly':'subscribers only',
     'trial.calc.changed':'During the free trial, only the results of your validated calculation are shown. Reopen it from the history, or subscribe to run new calculations.',
     'abon.demo.note':'Demo mode: switching plans is instant, no payment.',
     'abon.cancelscheduled':'Cancellation scheduled — access stays active until the end of the paid period.',
@@ -3731,6 +3733,7 @@ const I18N = {
     'trial.limit.calc':'لقد استخدمت الحساب المشمول في فترتك التجريبية لهذه الأداة. اشترك لمواصلة الحساب.',
     'trial.limit.download':'تنزيل عروض الأسعار ووثائق CPS متاح للمشتركين فقط. اشترك لتنزيل هذه الوثيقة.',
     'trial.subscribe':'اشترك الآن',
+    'abon.subscribe.plan':'اشترك في {plan} — {price}', 'trial.quota.subonly':'للمشتركين فقط',
     'trial.calc.changed':'خلال الفترة التجريبية المجانية، تُعرض نتائج حسابك المُعتمد فقط. أعد فتحه من السجل، أو اشترك لإجراء حسابات جديدة.',
     'abon.demo.note':'وضع تجريبي: تغيير الباقة فوري وبدون دفع.',
     'abon.cancelscheduled':'الإلغاء مجدول — يبقى الوصول نشطًا حتى نهاية الفترة المدفوعة.',
@@ -7502,12 +7505,16 @@ function viewAbonnement(role){
         ${hasSub && !isManual
           ? `<button class="btn btn-sm" data-action="abon-portal">${ic('i-card')} ${t('abon.manage')}</button>`
           : (isManual ? `<div class="card-sub" style="font-size:12px;">${t('abon.manual.note')}</div>` : (BACKEND.on? `<div class="card-sub" style="font-size:12px;">${t('abon.nosub')}</div>`:''))}
+        ${!isManual && (!acc.stripeStatus || subInactive(acc)) && plan.billing!=='perUnit' && !STATE.auth.adminTestActive
+          ? `<button class="btn btn-primary" style="margin-top:12px;" data-action="trial-subscribe">${ic('i-card')} ${tf('abon.subscribe.plan',{plan:esc(planLabel(acc.plan)), price:'$'+fmt(plan.priceMAD)+' '+periodSuffix(plan.pricePeriod||'month')})}</button>` : ''}
         ${plan.billing==='perUnit' ? '' : `
         <div class="divider"></div>
         <div class="card-title" style="margin:12px 0 10px;">${t('abon.usage.title')}</div>
         ${PLAN_QUOTA_KEYS.filter(k=>quotaIncluded(plan.quotas[k])).map(k=>{
           const used = usage[k]||0, q = quotaOf(role, k);   // quotas d'essai pendant l'essai
           if(quotaUnlimited(q)) return `<div style="margin-bottom:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);"><span>${t('plan.quota.'+k)}</span><span class="mono">${used} · ${t('quota.unlimited')}</span></div>`;
+          // Pendant l'essai, les téléchargements (quota d'essai 0) sont réservés aux abonnés.
+          if(q===0 && onTrialOnly(role)) return `<div style="margin-bottom:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);"><span>${t('plan.quota.'+k)}</span><span>${ic('i-lock')} ${t('trial.quota.subonly')}</span></div>`;
           const pct = q? clamp(round0(used/q*100),0,100) : 0;
           return `<div style="margin-bottom:12px;">
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:5px;"><span>${t('plan.quota.'+k)}</span><span class="mono">${used} / ${q}</span></div>
