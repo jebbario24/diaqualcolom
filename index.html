@@ -2588,7 +2588,7 @@ const I18N = {
     'page.admin.businesses.t':'Comptes Business', 'page.admin.businesses.s':'Gérez les entreprises clientes et leurs abonnements',
     'page.admin.particuliers.t':'Comptes Particuliers', 'page.admin.particuliers.s':'Tous les comptes particuliers, rattachés ou indépendants',
     'page.admin.plans.t':'Abonnements & Plans', 'page.admin.plans.s':'Gérez le prix, les quotas et les permissions des plans',
-    'page.admin.catalogue.t':'Catalogue central', 'page.admin.catalogue.s':'Produits de référence, visibles par les plans CPS, Propriétaire et Installateur',
+    'page.admin.catalogue.t':'Catalogue central', 'page.admin.catalogue.s':'Produits de référence, visibles par les plans CPS, Owner et Installer',
     'page.admin.settings.t':'Paramètres plateforme', 'page.admin.settings.s':'Réglages globaux et formules par défaut',
     'page.business.overview.t':'Tableau de bord', 'page.business.overview.s':'Vue d\'ensemble de votre activité',
     'page.business.clients.t':'Mes clients', 'page.business.clients.s':'Comptes particuliers rattachés à votre société',
@@ -2901,7 +2901,7 @@ const I18N = {
     'quota.serverfull':'Quota mensuel atteint pour cette action (vérifié côté serveur). Le compteur repart au début du mois prochain.',
     'quota.remaining':'{n} / {quota} restant(s) ce mois-ci',
     'quota.perunit.hint':'{price} $ par {label} — {n} généré(s) ce mois-ci ({total} $)',
-    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Propriétaire', 'plan.installateur.name':'Installateur', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
+    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'price.or':'ou', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
     'plan.quota.unlimited.line':'{label} en illimité', 'quota.unlimited':'illimité',
     'unit.per.month':'/ mois', 'unit.per.quarter':'/ 3 mois', 'unit.per.year':'/ an',
     'plan.price.alt':'ou {price} $ {per}',
@@ -3334,7 +3334,7 @@ const I18N = {
     'quota.serverfull':'Monthly quota reached for this action (checked server-side). The counter resets at the start of next month.',
     'quota.remaining':'{n} / {quota} left this month',
     'quota.perunit.hint':'{price} $ per {label} — {n} generated this month ({total} $)',
-    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
+    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'or',
     'plan.quota.unlimited.line':'Unlimited {label}', 'quota.unlimited':'unlimited',
     'unit.per.month':'/ month', 'unit.per.quarter':'/ 3 months', 'unit.per.year':'/ year',
     'plan.price.alt':'or {price} $ {per}',
@@ -3764,7 +3764,7 @@ const I18N = {
     'quota.serverfull':'تم بلوغ الحصة الشهرية لهذا الإجراء (تحقّق من جهة الخادم). يبدأ العدّاد من جديد مطلع الشهر القادم.',
     'quota.remaining':'{n} / {quota} متبقٍ هذا الشهر',
     'quota.perunit.hint':'{price} $ لكل {label} — تم إنشاء {n} هذا الشهر ({total} $)',
-    'plan.cps.name':'دفتر الشروط', 'plan.proprietaire.name':'مالك', 'plan.installateur.name':'مُركِّب', 'plan.business.name':'بزنس', 'plan.businesspro.name':'بزنس برو',
+    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'أو',
     'plan.quota.unlimited.line':'{label} بلا حدود', 'quota.unlimited':'بلا حدود',
     'unit.per.month':'/ شهر', 'unit.per.quarter':'/ 3 أشهر', 'unit.per.year':'/ سنة',
     'plan.price.alt':'أو {price} $ {per}',
@@ -4129,7 +4129,7 @@ function viewLanding(){
           <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">Start free trial</button>
           <button class="aq-btn aq-btn-lg" data-action="public-go" data-view="docs">View documentation</button>
         </div>
-        <div class="aq-hero-note">1-day trial · no card required · cancel anytime</div>
+        <div class="aq-hero-note">Free trial · no card required · cancel anytime</div>
       </div>
     </section>
 
@@ -4184,7 +4184,7 @@ function viewLanding(){
         <div class="aq-card aq-card--deep aq-reveal" style="text-align:center;padding:56px 28px;">
           <span class="aq-eyebrow">Ready?</span>
           <h2 style="margin:14px auto 12px;max-width:520px;">Start your first calculation today.</h2>
-          <p style="max-width:460px;margin:0 auto 26px;color:var(--aq-silver);">One-day trial, no card. Choose your plan, create your account, enter a pool.</p>
+          <p style="max-width:460px;margin:0 auto 26px;color:var(--aq-silver);">Free trial, no card. Choose your plan, create your account, enter a pool.</p>
           <button class="aq-btn aq-btn-primary aq-btn-lg" data-action="public-go" data-view="pricing">See plans</button>
         </div>
       </div>
@@ -4200,14 +4200,14 @@ function viewPublicPricing(){
     const perUnit = p.billing==='perUnit';
     const price = perUnit
       ? `<b>$${fmt(p.priceMAD)}</b> <span>/ document</span>`
-      : `<b>$${fmt(p.priceMAD)}</b> <span>${periodSuffix(p.pricePeriod||'month')}</span>${p.priceAltMAD>0&&p.priceAltPeriod?`<span style="display:block;margin-top:3px;">ou $${fmt(p.priceAltMAD)} ${periodSuffix(p.priceAltPeriod)}</span>`:''}`;
+      : `<b>$${fmt(p.priceMAD)}</b> <span>${periodSuffix(p.pricePeriod||'month')}</span>${p.priceAltMAD>0&&p.priceAltPeriod?`<span style="display:block;margin-top:3px;">${t('price.or')} $${fmt(p.priceAltMAD)} ${periodSuffix(p.priceAltPeriod)}</span>`:''}`;
     const lines = PLAN_QUOTA_KEYS.filter(k=>quotaIncluded(p.quotas[k])).map(k=>`<li>${ic('i-check')}<span>${planFeatureLine(p,k)}</span></li>`).join('')
       + (p.catalogueWrite?`<li>${ic('i-check')}<span>${t('plan.feat.cataloguewrite')}</span></li>`:'')
       + (p.boutique?`<li>${ic('i-check')}<span>${t('plan.feat.boutique')}</span></li>`:'');
     return `
       <div class="aq-price ${feat?'feat':''} aq-reveal">
         ${feat?`<span class="aq-badge-trial">Most popular</span>`:''}
-        ${!perUnit?`<span class="aq-badge-trial">1-day free trial</span>`:''}
+        ${!perUnit?`<span class="aq-badge-trial">Free trial</span>`:''}
         <div class="aq-price-name">${esc(planLabel(id))}</div>
         <div class="aq-price-tag">${price}</div>
         <p style="font-size:12px;color:var(--aq-faint);margin-top:4px;">${plan_role_label(p.role)}</p>
@@ -4221,7 +4221,7 @@ function viewPublicPricing(){
       <div class="aq-hero-inner aq-reveal">
         <span class="aq-eyebrow">Pricing</span>
         <h1 style="font-size:clamp(2.2rem,4.6vw,3.4rem);">One plan per job.</h1>
-        <p>From the owner managing their own pool to the engineering firm producing spec sheets at scale. One-day free trial on subscriptions, no card required.</p>
+        <p>From the owner managing their own pool to the engineering firm producing spec sheets at scale. Free trial on subscriptions, no card required.</p>
       </div>
     </section>
     <section class="aq-section" style="border-top:none;padding-top:8px;">
@@ -4277,7 +4277,7 @@ function viewSignup(){
       <div class="aq-authcard wide aq-reveal">
         <span class="aq-eyebrow">Create an account</span>
         <h2 style="font-size:1.5rem;margin:10px 0 6px;">Welcome to AquaLC</h2>
-        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'CPS is billed $40 per document generated, no subscription.':'1-day free trial, no card required.'}</p>
+        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'CPS is billed $40 per document generated, no subscription.':'Free trial, no card required.'}</p>
         ${err}
         <div class="aq-field">
           <label>Plan</label>
@@ -4369,7 +4369,7 @@ function viewDocs(){
            'Access to the central product catalog (items and base prices).'])}
 
         ${planBlock('business',
-          'For the pool company: same tools as Installateur, at volume, plus a catalog and store of your own.',
+          'For the pool company: same tools as Installer, at volume, plus a catalog and store of your own.',
           ['500 operations per category per month, plus 50 CPS documents per month included.',
            '<strong>Isolated</strong> product catalog: add your own items and prices, invisible to other companies.',
            'Bulk catalog import (Excel copy-paste or CSV file) and CSV export.',
@@ -4384,7 +4384,7 @@ function viewDocs(){
 
         <h2>Account &amp; billing</h2>
         <ul>
-          <li>The one-day free trial starts at signup, no card required. At the end, choose a plan to continue.</li>
+          <li>The free trial starts at signup, no card required. It lets you try each calculation tool once and preview quotes and CPS documents; downloading them, and further calculations, need a subscription. Choose a plan at any time to continue.</li>
           <li>Changing plans, updating your card, PDF invoices, and cancellation: "Manage my subscription" button (Paddle portal).</li>
           <li>Cancellation takes effect at the end of the period already paid for; access stays open until then.</li>
           <li>Have a question? <span class="aq-link" data-action="public-go" data-view="contact">Contact us</span>.</li>
@@ -4458,12 +4458,12 @@ function viewLegal(kind){
     <ul>
       <li>Creating an account requires a valid email address and a chosen plan.</li>
       <li>You're responsible for keeping your password confidential and for any activity on your account.</li>
-      <li>A one-day free trial is offered at signup on subscription plans, no card required.</li>
+      <li>A free trial is offered at signup on subscription plans, no card required. Trial usage is limited (one validated calculation per tool, no quote or CPS downloads), it ends after a limited period, and only one free trial is available per person.</li>
     </ul>
 
     <h2>4. Plans and payment</h2>
     <ul>
-      <li>Subscription plans (Propriétaire, Installateur, Business, Business Pro) are billed in advance, monthly, quarterly, or yearly depending on the plan.</li>
+      <li>Subscription plans (Owner, Installer, Business, Business Pro) are billed in advance, monthly, quarterly, or yearly depending on the plan.</li>
       <li>The CPS plan is billed per use: $40 per document generated, no subscription.</li>
       <li>Payments are processed by Paddle. AquaLC does not store any card data.</li>
       <li>Prices are shown in US dollars ($), exclusive of any applicable taxes.</li>
@@ -4541,7 +4541,7 @@ function viewLegal(kind){
 
     <h2>2. Subscription plans</h2>
     <ul>
-      <li>Every subscription plan includes a one-day free trial with no card required, so you can test the service before paying.</li>
+      <li>Every subscription plan includes a free trial with no card required, so you can test the service before paying.</li>
       <li>If you're charged for a new subscription (monthly, quarterly, or yearly), you may request a full refund within <strong>14 days</strong> of that first payment.</li>
       <li>Renewal payments are not refundable once the new billing period has started. You can cancel at any time to avoid future charges.</li>
       <li>Cancelling takes effect at the end of the current paid period; access remains active until then.</li>
