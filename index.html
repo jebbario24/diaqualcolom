@@ -2425,6 +2425,14 @@ const CALC_QUOTA = { etude:['chauffage'], entretien:['entretien'], hydraulique:[
 function calcFormFor(kind){ return STATE[CALC_KIND_STATE[kind]]; }
 function calcResultOf(kind){ return (STATE.calcResult||{})[kind] || null; }
 function calcIsValidated(kind){ return !!calcResultOf(kind); }
+// Résultats affichés ? Les résultats se recalculent en direct depuis le formulaire : pendant
+// l'essai, on ne les montre que tant que le formulaire est identique au calcul validé,
+// sinon modifier les champs donnerait des calculs illimités sans « Valider ».
+function calcShown(kind){
+  if(!calcIsValidated(kind)) return false;
+  if(!onTrialOnly(STATE.role)) return true;
+  return JSON.stringify(calcFormFor(kind)) === JSON.stringify(calcResultOf(kind));
+}
 function calcHistItems(kind, role){
   const scope = role==='particulier' ? 'particulier' : 'business';
   return STATE.calcHistory.filter(h=> h.kind===kind && (h.scope||'business')===scope);
@@ -2479,10 +2487,12 @@ function renderCalcValidate(kind, role){
     </div>${quotaHint}
   </div>`;
 }
-// Placeholder affiché à la place des résultats tant que le calcul n'est pas validé.
-function calcResultPlaceholder(){
+// Placeholder affiché à la place des résultats tant que le calcul n'est pas validé
+// (ou, pendant l'essai, quand le formulaire a changé depuis le calcul validé).
+function calcResultPlaceholder(kind){
+  const changed = kind && calcIsValidated(kind);
   return `<div class="card" style="text-align:center;padding:44px 24px;color:var(--text-muted);align-self:flex-start;">
-    ${ic('i-gauge')}<div style="margin-top:10px;font-size:13.5px;line-height:1.5;">${t('calc.notvalidated')}</div>
+    ${ic(changed?'i-lock':'i-gauge')}<div style="margin-top:10px;font-size:13.5px;line-height:1.5;">${t(changed?'trial.calc.changed':'calc.notvalidated')}</div>
   </div>`;
 }
 function renderCalcHistory(kind, role){
@@ -2861,6 +2871,7 @@ const I18N = {
     'trial.limit.calc':'Vous avez utilisé le calcul inclus dans votre essai gratuit pour cet outil. Abonnez-vous pour continuer à calculer sans limite d\'essai.',
     'trial.limit.download':'Le téléchargement des devis et des CPS est réservé aux abonnés. Abonnez-vous pour télécharger ce document.',
     'trial.subscribe':'S\'abonner maintenant',
+    'trial.calc.changed':'Pendant l\'essai gratuit, seuls les résultats de votre calcul validé sont affichés. Rouvrez-le depuis l\'historique, ou abonnez-vous pour lancer de nouveaux calculs.',
     'abon.demo.note':'Mode démo : le changement de formule est instantané, sans paiement.',
     'abon.cancelscheduled':'Résiliation programmée : l\'accès reste actif jusqu\'à la fin de la période payée.',
     'abon.admintest.note':'Aperçu admin : le paiement Paddle est désactivé ici. Testez-le avec un vrai compte business.',
@@ -3291,6 +3302,7 @@ const I18N = {
     'trial.limit.calc':'You\'ve used the calculation included in your free trial for this tool. Subscribe to keep calculating.',
     'trial.limit.download':'Downloading quotes and CPS documents is included with a subscription. Subscribe to download this document.',
     'trial.subscribe':'Subscribe now',
+    'trial.calc.changed':'During the free trial, only the results of your validated calculation are shown. Reopen it from the history, or subscribe to run new calculations.',
     'abon.demo.note':'Demo mode: switching plans is instant, no payment.',
     'abon.cancelscheduled':'Cancellation scheduled — access stays active until the end of the paid period.',
     'abon.admintest.note':'Admin preview: Paddle checkout is disabled here. Test it from a real business account.',
@@ -3719,6 +3731,7 @@ const I18N = {
     'trial.limit.calc':'لقد استخدمت الحساب المشمول في فترتك التجريبية لهذه الأداة. اشترك لمواصلة الحساب.',
     'trial.limit.download':'تنزيل عروض الأسعار ووثائق CPS متاح للمشتركين فقط. اشترك لتنزيل هذه الوثيقة.',
     'trial.subscribe':'اشترك الآن',
+    'trial.calc.changed':'خلال الفترة التجريبية المجانية، تُعرض نتائج حسابك المُعتمد فقط. أعد فتحه من السجل، أو اشترك لإجراء حسابات جديدة.',
     'abon.demo.note':'وضع تجريبي: تغيير الباقة فوري وبدون دفع.',
     'abon.cancelscheduled':'الإلغاء مجدول — يبقى الوصول نشطًا حتى نهاية الفترة المدفوعة.',
     'abon.admintest.note':'معاينة المشرف: الدفع عبر Paddle معطّل هنا. اختبره من حساب أعمال حقيقي.',
@@ -5908,7 +5921,7 @@ function viewEtude(role){
       ${renderCalcValidate('etude', role)}
     </div>
 
-    ${!calcIsValidated('etude') ? calcResultPlaceholder() : `<div class="sticky-note">
+    ${!calcShown('etude') ? calcResultPlaceholder('etude') : `<div class="sticky-note">
       <div class="result-card">
         <div class="result-head"><div class="ic">${ic('i-gauge')}</div><div><div class="card-title">${t('etude.results.title')}</div><div class="card-sub">${t('etude.results.sub')}</div></div></div>
 
@@ -5939,7 +5952,7 @@ function viewEtude(role){
              <div id="print-fallback-note" class="callout warn" style="display:none;margin-top:10px;">${ic('i-info')}<div>${tf('print.fallback',{btn:t('etude.printestimate')})}</div></div>`}
       </div>
     </div>`}
-    ${role!=='business' && calcIsValidated('etude') ? `
+    ${role!=='business' && calcShown('etude') ? `
     <div class="quote-sheet print-area print-only" id="estimate-sheet">
       <div class="quote-head">
         <h1>${t('estimate.title')}</h1>
@@ -6025,7 +6038,7 @@ function viewEntretien(role){
       ${renderCalcValidate('entretien', role)}
     </div>
 
-    ${!calcIsValidated('entretien') ? calcResultPlaceholder() : `<div class="sticky-note">
+    ${!calcShown('entretien') ? calcResultPlaceholder('entretien') : `<div class="sticky-note">
       <div class="result-card">
         <div class="result-head"><div class="ic">${ic('i-droplet')}</div><div><div class="card-title">${t('entretien.diag')}</div><div class="card-sub">${t('entretien.diag.sub')}</div></div></div>
 
@@ -6097,7 +6110,7 @@ function viewHydraulique(){
       </div>
       ${renderCalcValidate('hydraulique', 'business')}
     </div>
-    ${!calcIsValidated('hydraulique') ? calcResultPlaceholder() : `<div class="result-card">
+    ${!calcShown('hydraulique') ? calcResultPlaceholder('hydraulique') : `<div class="result-card">
       <div class="result-head"><div class="ic">${ic('i-wrench')}</div><div><div class="card-title">${t('hydro.results.title')}</div><div class="card-sub">${t('hydro.results.sub')}</div></div></div>
       <div class="grid grid-3" style="margin-bottom:14px;">
         <div class="metric-tile"><div class="l">${t('hydro.diamtuyau')}</div><div class="v">Ø${r.diametreTuyau}</div></div>
@@ -6139,7 +6152,7 @@ function viewSterilisation(role){
       </div>
       ${renderCalcValidate('sterilisation', role)}
     </div>
-    ${!calcIsValidated('sterilisation') ? calcResultPlaceholder() : `<div class="result-card">
+    ${!calcShown('sterilisation') ? calcResultPlaceholder('sterilisation') : `<div class="result-card">
       <div class="result-head"><div class="ic">${ic('i-flask')}</div><div><div class="card-title">${t('steril.config.title')}</div><div class="card-sub">${tf('steril.config.sub',{v:fmt(r.V,1)})}</div></div></div>
       <div class="metric-tile" style="margin-bottom:10px;">
         <div class="l">${t('steril.regulateur.ph')}</div><div class="v" style="font-size:15px;">${r.regulateurPh.nom}</div>
