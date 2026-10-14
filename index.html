@@ -945,7 +945,32 @@ function displayInitials(role){
   const parts = acc.nom.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]||'')[0]||'') .concat((parts[1]||'')[0]||'').toUpperCase() || (role==='business'?'AT':'KA');
 }
-function quotaOf(role, cat){ const plan = planForRole(role); if(!plan) return 0; const q = plan.quotas[cat]; return q==null? 0 : q; }
+// Essai gratuit : 1 calcul validé par outil, et aucun téléchargement de devis / CPS
+// (on peut les construire et les voir, pas les imprimer). Même règle côté serveur
+// dans consume_quota() — supabase/migrations/trial_limits_and_email_checks.sql.
+const TRIAL_QUOTAS = { cps:0, devis:0, entretien:1, chauffage:1, hydraulique:1, regulateur:1, electrolyseur:1 };
+// Compte en essai sans abonnement vivant (ni Paddle, ni accès manuel).
+function onTrialOnly(role){
+  if(STATE.auth.adminTestActive) return false;
+  const acc = accountForRole(role);
+  return !!(acc && acc.plan !== 'cps' && trialActive(acc) && (!acc.stripeStatus || subInactive(acc)));
+}
+function quotaOf(role, cat){
+  const plan = planForRole(role); if(!plan) return 0;
+  const q = plan.quotas[cat] == null ? 0 : plan.quotas[cat];
+  return (q !== 0 && onTrialOnly(role)) ? TRIAL_QUOTAS[cat] : q;
+}
+// Callout "limite d'essai atteinte" + bouton "S'abonner" (ouvre le paiement Paddle de la
+// formule du compte), ou '' si le compte n'est pas en essai / a encore droit à l'action.
+function trialGate(role, cats, mt){
+  if(!onTrialOnly(role)) return '';
+  const plan = planForRole(role);
+  const hit = cats.filter(c=> quotaIncluded(plan.quotas[c]) && quotaRemaining(role, c) <= 0);
+  if(!hit.length) return '';
+  const key = hit.some(c=> TRIAL_QUOTAS[c]===0) ? 'trial.limit.download' : 'trial.limit.calc';
+  return `<div class="callout warn" style="margin-top:${mt||12}px;">${ic('i-lock')}<div>${t(key)}
+    <div style="margin-top:10px;"><button class="btn btn-primary btn-sm" data-action="trial-subscribe">${ic('i-card')} ${t('trial.subscribe')}</button></div></div></div>`;
+}
 function usageOf(role, cat){ const acc = accountForRole(role); return acc? (getUsage(acc.id)[cat]||0) : 0; }
 function quotaRemaining(role, cat){
   const plan = planForRole(role);
@@ -1077,6 +1102,7 @@ function cpsGenerateControls(role){
 // or a blocking callout when the plan doesn't include this feature at all / the monthly quota is spent.
 function quotaGatedButton(role, cats, action, iconName, labelKey){
   const plan = planForRole(role);
+  const gate = trialGate(role, cats); if(gate) return gate;
   const rows = cats.map(c=>({c, q:quotaOf(role,c), r:quotaRemaining(role,c)}));
   if(rows.some(x=>x.q===0)) return `<div class="callout warn" style="margin-top:12px;">${ic('i-info')}<div>${t('quota.notincluded')}</div></div>`;
   if(rows.some(x=>x.r<=0)) return `<div class="callout danger" style="margin-top:12px;">${ic('i-info')}<div>${t('quota.exhausted')}</div></div>`;
@@ -2431,6 +2457,7 @@ function deleteCalcFromHistory(id){
 // résultat et enregistre une copie datée.
 function renderCalcValidate(kind, role){
   const cats = CALC_QUOTA[kind] || [];
+  const gate = trialGate(role, cats, 14); if(gate) return gate;
   const rows = cats.map(c=>({q:quotaOf(role,c), r:quotaRemaining(role,c)}));
   if(cats.length && rows.some(x=>x.q===0)) return `<div class="callout warn" style="margin-top:14px;">${ic('i-info')}<div>${t('quota.notincluded')}</div></div>`;
   if(cats.length && rows.some(x=>x.r<=0)) return `<div class="callout danger" style="margin-top:14px;">${ic('i-info')}<div>${t('quota.exhausted')}</div></div>`;
@@ -2825,6 +2852,9 @@ const I18N = {
     'abon.expired':'Abonnement inactif : l\'accès aux outils est suspendu. Choisissez une formule ci-dessous pour le réactiver.',
     'abon.trial.active':'Essai gratuit en cours, il vous reste {n} jour(s). Choisissez une formule pour continuer sans interruption.',
     'abon.trial.ended':'Votre essai gratuit est terminé. Choisissez une formule pour retrouver l\'accès aux outils.',
+    'trial.limit.calc':'Vous avez utilisé le calcul inclus dans votre essai gratuit pour cet outil. Abonnez-vous pour continuer à calculer sans limite d\'essai.',
+    'trial.limit.download':'Le téléchargement des devis et des CPS est réservé aux abonnés. Abonnez-vous pour télécharger ce document.',
+    'trial.subscribe':'S\'abonner maintenant',
     'abon.demo.note':'Mode démo : le changement de formule est instantané, sans paiement.',
     'abon.cancelscheduled':'Résiliation programmée : l\'accès reste actif jusqu\'à la fin de la période payée.',
     'abon.admintest.note':'Aperçu admin : le paiement Paddle est désactivé ici. Testez-le avec un vrai compte business.',
@@ -3252,6 +3282,9 @@ const I18N = {
     'abon.expired':'Subscription inactive — tool access is suspended. Pick a plan below to reactivate it.',
     'abon.trial.active':'Free trial running — {n} day(s) left. Pick a plan to keep access after the trial.',
     'abon.trial.ended':'Your free trial has ended — pick a plan to restore access to the tools.',
+    'trial.limit.calc':'You\'ve used the calculation included in your free trial for this tool. Subscribe to keep calculating.',
+    'trial.limit.download':'Downloading quotes and CPS documents is included with a subscription. Subscribe to download this document.',
+    'trial.subscribe':'Subscribe now',
     'abon.demo.note':'Demo mode: switching plans is instant, no payment.',
     'abon.cancelscheduled':'Cancellation scheduled — access stays active until the end of the paid period.',
     'abon.admintest.note':'Admin preview: Paddle checkout is disabled here. Test it from a real business account.',
@@ -3677,6 +3710,9 @@ const I18N = {
     'abon.expired':'الاشتراك غير نشط — تم تعليق الوصول إلى الأدوات. اختر باقة أدناه لإعادة تفعيله.',
     'abon.trial.active':'الفترة التجريبية المجانية جارية — تبقّى {n} يوم/أيام. اختر باقة للاستمرار دون انقطاع.',
     'abon.trial.ended':'انتهت فترتك التجريبية المجانية — اختر باقة لاستعادة الوصول إلى الأدوات.',
+    'trial.limit.calc':'لقد استخدمت الحساب المشمول في فترتك التجريبية لهذه الأداة. اشترك لمواصلة الحساب.',
+    'trial.limit.download':'تنزيل عروض الأسعار ووثائق CPS متاح للمشتركين فقط. اشترك لتنزيل هذه الوثيقة.',
+    'trial.subscribe':'اشترك الآن',
     'abon.demo.note':'وضع تجريبي: تغيير الباقة فوري وبدون دفع.',
     'abon.cancelscheduled':'الإلغاء مجدول — يبقى الوصول نشطًا حتى نهاية الفترة المدفوعة.',
     'abon.admintest.note':'معاينة المشرف: الدفع عبر Paddle معطّل هنا. اختبره من حساب أعمال حقيقي.',
@@ -4915,6 +4951,16 @@ function currentIsDark(){
 }
 
 function bindGlobalActions(){
+  // "S'abonner" depuis une limite d'essai : paiement Paddle direct pour la formule du compte.
+  $$('[data-action="trial-subscribe"]').forEach(b=> b.addEventListener('click', async ()=>{
+    const role = STATE.role, acc = accountForRole(role);
+    const goPlans = ()=>{ STATE.view = role+'.abonnement'; saveState(); render(); };
+    if(!BACKEND.on || !acc) return goPlans();
+    b.disabled = true;
+    const r = await BACKEND.startCheckout(acc.plan, 'main');
+    b.disabled = false;
+    if(r && r.error) goPlans();
+  }));
   $$('[data-action="go"]').forEach(el=> el.addEventListener('click', ()=>{ acctEmailMsg=null; acctPwdMsg=null; checkoutFlash=null; STATE.view = el.dataset.view; saveState(); render(); }));
   $$('[data-action="switch-role"]').forEach(el=> el.addEventListener('click', ()=>{
     acctEmailMsg=null; acctPwdMsg=null;
@@ -7440,7 +7486,7 @@ function viewAbonnement(role){
         <div class="divider"></div>
         <div class="card-title" style="margin:12px 0 10px;">${t('abon.usage.title')}</div>
         ${PLAN_QUOTA_KEYS.filter(k=>quotaIncluded(plan.quotas[k])).map(k=>{
-          const used = usage[k]||0, q = plan.quotas[k];
+          const used = usage[k]||0, q = quotaOf(role, k);   // quotas d'essai pendant l'essai
           if(quotaUnlimited(q)) return `<div style="margin-bottom:12px;display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);"><span>${t('plan.quota.'+k)}</span><span class="mono">${used} · ${t('quota.unlimited')}</span></div>`;
           const pct = q? clamp(round0(used/q*100),0,100) : 0;
           return `<div style="margin-bottom:12px;">
