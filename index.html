@@ -2901,7 +2901,7 @@ const I18N = {
     'quota.serverfull':'Quota mensuel atteint pour cette action (vérifié côté serveur). Le compteur repart au début du mois prochain.',
     'quota.remaining':'{n} / {quota} restant(s) ce mois-ci',
     'quota.perunit.hint':'{price} $ par {label} — {n} généré(s) ce mois-ci ({total} $)',
-    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'price.or':'ou', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'price.or':'ou', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro',
     'plan.quota.unlimited.line':'{label} en illimité', 'quota.unlimited':'illimité',
     'unit.per.month':'/ mois', 'unit.per.quarter':'/ 3 mois', 'unit.per.year':'/ an',
     'plan.price.alt':'ou {price} $ {per}',
@@ -3016,12 +3016,12 @@ const I18N = {
     'store.preview.banner':'Preview of your store — this is what your clients will see.', 'store.preview.exit':'Exit preview',
     'nav.particulier.bassin':'My pool', 'nav.particulier.entretien':'Water analysis', 'nav.particulier.historique':'Test history',
     'nav.particulier.etude':'Project estimate', 'nav.particulier.devis':'Request a quote',
-    'nav.particulier.devis.self':'My quote', 'nav.particulier.cps':'My specs (CPS)', 'nav.particulier.sterilisation':'Sterilization',
+    'nav.particulier.devis.self':'My quote', 'nav.particulier.cps':'My spec sheets', 'nav.particulier.sterilisation':'Sterilization',
     'page.admin.overview.t':'Overview', 'page.admin.overview.s':'Global activity of the AquaLC platform',
     'page.admin.businesses.t':'Business accounts', 'page.admin.businesses.s':'Manage client companies and their subscriptions',
     'page.admin.particuliers.t':'Individual accounts', 'page.admin.particuliers.s':'All individual accounts, affiliated or independent',
     'page.admin.plans.t':'Subscriptions & Plans', 'page.admin.plans.s':'Manage price, quotas and permissions for the plans',
-    'page.admin.catalogue.t':'Central catalog', 'page.admin.catalogue.s':'Reference products, seen by the CPS, Owner and Installer plans',
+    'page.admin.catalogue.t':'Central catalog', 'page.admin.catalogue.s':'Reference products, seen by the Spec Sheet, Owner and Installer plans',
     'page.admin.settings.t':'Platform settings', 'page.admin.settings.s':'Global settings and default formulas',
     'page.business.overview.t':'Dashboard', 'page.business.overview.s':'Overview of your activity',
     'page.business.clients.t':'My clients', 'page.business.clients.s':'Individual accounts linked to your company',
@@ -3038,7 +3038,7 @@ const I18N = {
     'page.particulier.etude.t':'Project estimate', 'page.particulier.etude.s':'Indicative pre-sizing before construction',
     'page.particulier.devis.t':'Request a quote', 'page.particulier.devis.s':'Send your project to a professional',
     'page.particulier.devis.self.t':'My quote', 'page.particulier.devis.self.s':'Generate your quote from the offered products',
-    'page.particulier.cps.t':'My specs (CPS)', 'page.particulier.cps.s':'Special technical specifications for your project',
+    'page.particulier.cps.t':'My spec sheets', 'page.particulier.cps.s':'Technical specifications for your pool project',
     'status.actif':'active', 'status.prospect':'prospect', 'status.inactif':'inactive', 'status.terminé':'completed', 'status.en attente':'pending', 'status.suspendu':'suspended', 'status.indépendant':'independent', 'status.invité':'invited', 'status.offline':'Offline',
     'th.societe':'Company', 'th.ville':'City', 'th.plan':'Plan', 'th.clients':'Clients', 'th.statut':'Status', 'th.inscription':'Signed up',
     'th.nom':'Name', 'th.rattache':'Linked to', 'th.volume':'Pool volume', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Access',
@@ -3056,7 +3056,7 @@ const I18N = {
     'admin.access.manual':'Manual access', 'admin.access.expired':'Manual access expired', 'admin.access.unlimited':'unlimited',
     'admin.access.revoke':'Revoke', 'admin.access.revoke.confirm':'Revoke this account\'s manual access? It will be locked out again until a Paddle subscription is active.',
     'admin.access.until.hint':'End date (optional) — leave blank for unlimited manual access, revocable anytime.',
-    'admin.access.cps.na':'CPS plan — no lock',
+    'admin.access.cps.na':'Spec Sheet plan — no lock',
     'th.abonnement':'Subscription', 'admin.sub.trial':'Trial · {h}h left', 'admin.sub.locked':'Locked',
     'admin.sub.trialended':'trial ended {date}', 'admin.sub.notrial':'no trial',
     'admin.sub.summary':'{trial} on trial · {locked} locked · {paid} paying',
@@ -3214,7 +3214,7 @@ const I18N = {
     'confirm.deleteproduct':'Delete "{nom}" from the shared catalogue? This is immediate and affects every account using this catalogue.',
     'th.produit':'Product', 'th.categorie':'Category', 'th.prix':'Price (MAD)', 'th.qte':'Qty', 'th.pu':'Unit price (MAD)', 'th.total':'Total',
     'th.periode':'Period', 'th.montant':'Amount', 'th.message':'Message', 'th.chlore':'Chlorine (mg/L)',
-    'devis.tab.devis':'Quote', 'devis.tab.cps':'Special Technical Specifications (CPS)',
+    'devis.tab.devis':'Quote', 'devis.tab.cps':'Spec sheet',
     'devis.customize':'Document customization', 'devis.societename':'Company name', 'devis.logo':'Logo',
     'devis.societename.help':'Pre-filled from Account settings → Company identity.',
     'devis.piedpage.help':'Contact details shown at the bottom of the quote (address, phone, ICE).',
@@ -3230,8 +3230,8 @@ const I18N = {
     'devis.freeline':'— Free line / not in catalog —', 'devis.designation':'Description', 'ph.designation':'Product or service name',
     'devis.qte':'Quantity', 'devis.pu':'Unit price (MAD)', 'devis.addline.btn':'Add line',
     'devis.noitems':'No lines — add products from the calculation modules.', 'devis.clear':'Clear quote',
-    'doc.hist.title':'Saved quotes', 'doc.hist.cpstitle':'Saved CPS',
-    'doc.hist.savedevis':'Save this quote', 'doc.hist.savecps':'Save this CPS',
+    'doc.hist.title':'Saved quotes', 'doc.hist.cpstitle':'Saved spec sheets',
+    'doc.hist.savedevis':'Save this quote', 'doc.hist.savecps':'Save this spec sheet',
     'doc.hist.open':'Open', 'doc.hist.empty':'No saved documents yet.',
     'doc.hist.confirmopen':'The current quote isn\'t saved. Opening this will replace the current draft. Continue?',
     'doc.hist.confirmdel':'Permanently delete this saved document?',
@@ -3254,20 +3254,20 @@ const I18N = {
     'devis.signdate':'Date and signature', 'devis.signcompany':'Stamp and signature', 'devis.printbtn':'Print / Export to PDF',
     'default.societe':'Your company',
     'cps.projectinfo':'Project information', 'cps.typeprojet':'Project type', 'cps.delai':'Overall execution time (weeks)',
-    'cps.numero':'CPS No.', 'cps.adresse':'Site address', 'ph.adresse':'E.g. Al Manar subdivision, Casablanca',
+    'cps.numero':'Spec No.', 'cps.adresse':'Site address', 'ph.adresse':'E.g. Al Manar subdivision, Casablanca',
     'cps.type.construction':'New construction', 'cps.type.renovation':'Renovation', 'cps.type.misesauxnormes':'Code compliance upgrade',
     'cps.garanties':'Warranties offered', 'cps.garantie.structure':'Structure (years)', 'cps.garantie.etancheite':'Waterproofing (years)',
     'cps.garantie.equipements':'Equipment (years)', 'cps.normes':'Standards and regulations',
-    'cps.phasage':'Work phasing', 'cps.phasage.help':'Steps appear numbered in article 5 of the CPS.', 'cps.reception.exclusions':'Acceptance & exclusions',
+    'cps.phasage':'Work phasing', 'cps.phasage.help':'Steps appear numbered in article 5 of the spec sheet.', 'cps.reception.exclusions':'Acceptance & exclusions',
     'cps.phase.add':'Add a step', 'cps.phase.empty':'No steps — add the first one below.',
-    'cps.textcard':'CPS text', 'cps.objet':'Purpose (article 1)', 'cps.objet.help':'Leave empty for the auto-generated text. Otherwise this replaces article 1.',
+    'cps.textcard':'Spec sheet text', 'cps.objet':'Purpose (article 1)', 'cps.objet.help':'Leave empty for the auto-generated text. Otherwise this replaces article 1.',
     'cps.articles':'Custom articles', 'cps.article.add':'Add an article', 'cps.article.title.ph':'Article title (e.g. Insurance and liability)', 'cps.article.text.ph':'Article text…', 'cps.article.untitled':'Article',
     'cps.reception':'Acceptance conditions', 'cps.exclusions':'Exclusions and reservations',
     'cps.clause.add':'Add a clause', 'cps.clause.empty':'No clauses — add one.', 'cps.exclusion.add':'Add an exclusion',
-    'cps.s8.intro':'The following are excluded from this CPS:',
-    'cps.doctype':'SPECIAL TECHNICAL SPECIFICATIONS', 'cps.entreprise':'Contractor', 'cps.maitreouvrage':'Client (owner)',
+    'cps.s8.intro':'The following are excluded from this specification:',
+    'cps.doctype':'TECHNICAL SPECIFICATION', 'cps.entreprise':'Contractor', 'cps.maitreouvrage':'Client (owner)',
     'cps.s1.title':'1. Purpose',
-    'cps.s1.text':'This document (CPS) defines the technical specifications, execution conditions and mutual obligations applicable to the {type} of the pool described below{addr}.',
+    'cps.s1.text':'This technical specification defines the technical requirements, execution conditions and mutual obligations applicable to the {type} of the pool described below{addr}.',
     'cps.s1.addr':', located at {a}',
     'cps.s2.title':'2. Technical description of the pool', 'cps.s2.debit.value':'{q} m³/h over {d} h/day',
     'cps.s2.filtration':'Filtration', 'cps.s2.filtration.value':'Ø{d} sand filter — {cv} HP pump ({phase})', 'cps.s2.chauffage':'Heating',
@@ -3284,14 +3284,14 @@ const I18N = {
     'cps.s6.equipements':'Technical equipment (parts and labor)', 'unit.ans':'year(s)',
     'cps.s7.title':'7. Acceptance of works', 'cps.s8.title':'8. Exclusions and reservations',
     'cps.sign.maitre':'The Client (owner)', 'cps.sign.readapproved':'Read and approved, date and signature',
-    'cps.disclaimer':'This CPS is an indicative template automatically generated from your technical study. It must be reviewed and validated by a professional (technical and legal) before it has any contractual value.',
-    'cps.credits.balance':'CPS credits available: {n}',
+    'cps.disclaimer':'This specification is an indicative template automatically generated from your technical study. It must be reviewed and validated by a professional (technical and legal) before it has any contractual value.',
+    'cps.credits.balance':'Spec sheet credits available: {n}',
     'cps.pay.btn':'Pay $40 and generate the document',
-    'cps.generate.btn':'Generate the document (1 CPS credit)',
+    'cps.generate.btn':'Generate the document (1 spec sheet credit)',
     'cps.pay.received':'Payment received — you can generate your document.',
-    'cps.credits.none':'No CPS credit available. Pay $40 to generate this document.',
-    'cps.abon.note':'the CPS plan is billed per document ($40), no subscription or trial. Switch to a plan below for a monthly package.',
-    'abon.checkout.cps':'CPS payment confirmed — your credit is added within a few seconds.',
+    'cps.credits.none':'No spec sheet credit available. Pay $40 to generate this document.',
+    'cps.abon.note':'the Spec Sheet plan is billed per document ($40), no subscription or trial. Switch to a plan below for a monthly package.',
+    'abon.checkout.cps':'Spec sheet payment confirmed — your credit is added within a few seconds.',
     'abon.currentplan':'Current plan: {plan}', 'abon.renewal':'Automatic renewal on 09/01/2026', 'abon.usage.title':'Usage this month',
     'abon.devisgeneres':'Quotes generated this month', 'abon.changeplan':'Change plan', 'abon.billing':'Billing',
     'abon.billing.note':'Billing history, PDF invoices and card changes: in "Manage my subscription" (Paddle portal).',
@@ -3301,7 +3301,7 @@ const I18N = {
     'abon.trial.active':'Free trial running. Pick a plan to keep access after the trial.',
     'abon.trial.ended':'Your free trial has ended — pick a plan to restore access to the tools.',
     'trial.limit.calc':'You\'ve used the calculation included in your free trial for this tool. Subscribe to keep calculating.',
-    'trial.limit.download':'Downloading quotes and CPS documents is included with a subscription. Subscribe to download this document.',
+    'trial.limit.download':'Downloading quotes and spec sheets is included with a subscription. Subscribe to download this document.',
     'trial.subscribe':'Subscribe now',
     'abon.subscribe.plan':'Subscribe to {plan} — {price}', 'trial.quota.subonly':'subscribers only',
     'trial.calc.changed':'During the free trial, only the results of your validated calculation are shown. Reopen it from the history, or subscribe to run new calculations.',
@@ -3334,7 +3334,7 @@ const I18N = {
     'quota.serverfull':'Monthly quota reached for this action (checked server-side). The counter resets at the start of next month.',
     'quota.remaining':'{n} / {quota} left this month',
     'quota.perunit.hint':'{price} $ per {label} — {n} generated this month ({total} $)',
-    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'or',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'or',
     'plan.quota.unlimited.line':'Unlimited {label}', 'quota.unlimited':'unlimited',
     'unit.per.month':'/ month', 'unit.per.quarter':'/ 3 months', 'unit.per.year':'/ year',
     'plan.price.alt':'or {price} $ {per}',
@@ -3343,9 +3343,9 @@ const I18N = {
     'entretien.couleur':'Water colour', 'entretien.couleur.clair':'Clear', 'entretien.couleur.jaune':'Yellowish', 'entretien.couleur.vert':'Green',
     'entretien.couleur.vert.warn':'Green water: algae bloom likely. A stronger shock anti-algae treatment and flocculant are recommended.',
     'entretien.couleur.jaune.warn':'Yellowish water: early algae growth. A light anti-algae treatment is recommended.',
-    'plan.quota.line':'{n} {label} / month', 'plan.quota.perunit.line':'Unlimited {label}, billed per use', 'plan.quota.cps':'CPS', 'plan.quota.devis':'quotes', 'plan.quota.entretien':'maintenance visit(s)',
+    'plan.quota.line':'{n} {label} / month', 'plan.quota.perunit.line':'Unlimited {label}, billed per use', 'plan.quota.cps':'spec sheets', 'plan.quota.devis':'quotes', 'plan.quota.entretien':'maintenance visit(s)',
     'plan.quota.chauffage':'heat pump / heater calculation(s)', 'plan.quota.hydraulique':'hydraulic calculation(s)', 'plan.quota.regulateur':'pH/Chlorine regulator(s)', 'plan.quota.electrolyseur':'salt electrolyzer(s)',
-    'plan.feat.cps':'special specification (CPS)',
+    'plan.feat.cps':'technical spec sheets',
     'plan.feat.devis':'costed quotes (PDF, custom letterhead)',
     'plan.feat.entretien':'water analyses + treatment plan (pH, chlorine, corrections)',
     'plan.feat.chauffage':'heating studies (heat pump / heater sizing)',
@@ -3764,7 +3764,7 @@ const I18N = {
     'quota.serverfull':'تم بلوغ الحصة الشهرية لهذا الإجراء (تحقّق من جهة الخادم). يبدأ العدّاد من جديد مطلع الشهر القادم.',
     'quota.remaining':'{n} / {quota} متبقٍ هذا الشهر',
     'quota.perunit.hint':'{price} $ لكل {label} — تم إنشاء {n} هذا الشهر ({total} $)',
-    'plan.cps.name':'CPS', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'أو',
+    'plan.cps.name':'Spec Sheet', 'plan.proprietaire.name':'Owner', 'plan.installateur.name':'Installer', 'plan.business.name':'Business', 'plan.businesspro.name':'Business Pro', 'price.or':'أو',
     'plan.quota.unlimited.line':'{label} بلا حدود', 'quota.unlimited':'بلا حدود',
     'unit.per.month':'/ شهر', 'unit.per.quarter':'/ 3 أشهر', 'unit.per.year':'/ سنة',
     'plan.price.alt':'أو {price} $ {per}',
@@ -4277,7 +4277,7 @@ function viewSignup(){
       <div class="aq-authcard wide aq-reveal">
         <span class="aq-eyebrow">Create an account</span>
         <h2 style="font-size:1.5rem;margin:10px 0 6px;">Welcome to AquaLC</h2>
-        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'CPS is billed $40 per document generated, no subscription.':'Free trial, no card required.'}</p>
+        <p style="font-size:13px;color:var(--aq-silver);margin-bottom:18px;">${plan.billing==='perUnit'?'Spec sheets are billed $40 per document generated, no subscription.':'Free trial, no card required.'}</p>
         ${err}
         <div class="aq-field">
           <label>Plan</label>
@@ -4326,7 +4326,7 @@ function viewDocs(){
       <div class="aq-prose">
         <div class="aq-toc">
           <a data-action="scroll-to" data-target="doc-start">Principle</a>
-          <a data-action="scroll-to" data-target="doc-cps">CPS</a>
+          <a data-action="scroll-to" data-target="doc-cps">${esc(planLabel('cps'))}</a>
           <a data-action="scroll-to" data-target="doc-proprietaire">${esc(planLabel('proprietaire'))}</a>
           <a data-action="scroll-to" data-target="doc-installateur">${esc(planLabel('installateur'))}</a>
           <a data-action="scroll-to" data-target="doc-business">Business</a>
@@ -4370,7 +4370,7 @@ function viewDocs(){
 
         ${planBlock('business',
           'For the pool company: same tools as Installer, at volume, plus a catalog and store of your own.',
-          ['500 operations per category per month, plus 50 CPS documents per month included.',
+          ['500 operations per category per month, plus 50 spec sheets per month included.',
            '<strong>Isolated</strong> product catalog: add your own items and prices, invisible to other companies.',
            'Bulk catalog import (Excel copy-paste or CSV file) and CSV export.',
            'Shareable online store: a storefront with your products and prices, sent to your clients by link or WhatsApp.',
@@ -4378,13 +4378,13 @@ function viewDocs(){
 
         ${planBlock('business_pro',
           'For engineering firms and large organizations: everything in Business, with no usage limits.',
-          ['Every category <strong>unlimited</strong>: studies, quotes, maintenance, CPS, sterilization.',
+          ['Every category <strong>unlimited</strong>: studies, quotes, maintenance, spec sheets, sterilization.',
            'Your own catalog and store, import / export included.',
            'Billed annually: $600 / year.'])}
 
         <h2>Account &amp; billing</h2>
         <ul>
-          <li>The free trial starts at signup, no card required. It lets you try each calculation tool once and preview quotes and CPS documents; downloading them, and further calculations, need a subscription. Choose a plan at any time to continue.</li>
+          <li>The free trial starts at signup, no card required. It lets you try each calculation tool once and preview quotes and spec sheets; downloading them, and further calculations, need a subscription. Choose a plan at any time to continue.</li>
           <li>Changing plans, updating your card, PDF invoices, and cancellation: "Manage my subscription" button (Paddle portal).</li>
           <li>Cancellation takes effect at the end of the period already paid for; access stays open until then.</li>
           <li>Have a question? <span class="aq-link" data-action="public-go" data-view="contact">Contact us</span>.</li>
@@ -4458,13 +4458,13 @@ function viewLegal(kind){
     <ul>
       <li>Creating an account requires a valid email address and a chosen plan.</li>
       <li>You're responsible for keeping your password confidential and for any activity on your account.</li>
-      <li>A free trial is offered at signup on subscription plans, no card required. Trial usage is limited (one validated calculation per tool, no quote or CPS downloads), it ends after a limited period, and only one free trial is available per person.</li>
+      <li>A free trial is offered at signup on subscription plans, no card required. Trial usage is limited (one validated calculation per tool, no quote or spec sheet downloads), it ends after a limited period, and only one free trial is available per person.</li>
     </ul>
 
     <h2>4. Plans and payment</h2>
     <ul>
       <li>Subscription plans (Owner, Installer, Business, Business Pro) are billed in advance, monthly, quarterly, or yearly depending on the plan.</li>
-      <li>The CPS plan is billed per use: $40 per document generated, no subscription.</li>
+      <li>The Spec Sheet plan is billed per use: $40 per document generated, no subscription.</li>
       <li>Payments are processed by Paddle. AquaLC does not store any card data.</li>
       <li>Prices are shown in US dollars ($), exclusive of any applicable taxes.</li>
       <li>Canceling a subscription takes effect at the end of the current billing period; no prorated refund is owed, except as described in our Refund Policy or where required by law.</li>
@@ -4499,7 +4499,7 @@ function viewLegal(kind){
     <h2>2. Data we collect</h2>
     <ul>
       <li><strong>Account</strong>: name, city, email address, password (hashed), chosen plan.</li>
-      <li><strong>Business content</strong>: client records, catalogs, technical studies, quotes, and CPS documents you create in the app.</li>
+      <li><strong>Business content</strong>: client records, catalogs, technical studies, quotes, and spec sheets you create in the app.</li>
       <li><strong>Billing</strong>: Paddle customer ID, subscription status, payment history. Card data is held by Paddle, never by AquaLC.</li>
       <li><strong>Technical</strong>: connection and error logs strictly necessary for the Service to function.</li>
     </ul>
@@ -4547,9 +4547,9 @@ function viewLegal(kind){
       <li>Cancelling takes effect at the end of the current paid period; access remains active until then.</li>
     </ul>
 
-    <h2>3. CPS plan (pay per document)</h2>
+    <h2>3. Spec Sheet plan (pay per document)</h2>
     <ul>
-      <li>The $40 CPS payment is refundable if you haven't yet generated the document (the CPS credit is unused).</li>
+      <li>The $40 spec sheet payment is refundable if you haven't yet generated the document (the credit is unused).</li>
       <li>Once a document has been generated, the payment is not refundable, since the digital product has been delivered.</li>
     </ul>
 
@@ -4809,7 +4809,7 @@ function bindPublicActions(){
     STATE.devisTemplate.piedDePage = plan.role==='business' ? nom : '';
     STATE.devisCourant = {numero:'DEV-'+yr+'-0001', client:'', date:new Date().toISOString().slice(0,10), items:[], remisePct:0};
     STATE.particulierDevisCourant = {numero:'DEV-'+yr+'-0001', client:nom, date:new Date().toISOString().slice(0,10), items:[], remisePct:0};
-    STATE.cpsForm.numero = 'CPS-'+yr+'-0001';
+    STATE.cpsForm.numero = (STATE.lang==='fr'?'CPS-':'SPEC-')+yr+'-0001';
     signupError = null; loginError = null;
     signupDraft = {plan:null, nom:'', ville:'', email:'', password:'', passwordConfirm:''};
     STATE.signup = null;
