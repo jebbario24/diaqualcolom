@@ -2157,6 +2157,7 @@ function setupPaddle(){
 const CALC = { etude:null, entretien:null, hydraulique:null, sterilisation:null };
 let loginError = null; // transient — not persisted, cleared on every successful navigation
 let signupError = null; // transient — not persisted, cleared on every successful navigation
+let signupErrorDetail = ''; // raw Supabase message, shown small under server / unknown errors
 let backendSignupNotice = false; // MODE COMPTE RÉEL : "vérifiez votre e-mail" après inscription
 // Adresse en attente de confirmation (inscription, ou connexion d'un compte non confirmé) :
 // tant qu'elle est posée, la page de connexion affiche l'écran « Confirmez votre e-mail ».
@@ -3014,6 +3015,9 @@ const I18N = {
     'signup.error.email.used':'Cette adresse email est déjà utilisée.', 'signup.error.password.short':'Le mot de passe doit contenir au moins 6 caractères.',
     'signup.error.password.mismatch':'La confirmation ne correspond pas au mot de passe.',
     'signup.error.generic':'Inscription impossible pour le moment. Réessayez dans un instant.',
+    'signup.error.ratelimit':'Trop d\'inscriptions en peu de temps : l\'envoi de l\'e-mail de confirmation est temporairement limité. Réessayez dans une heure, ou contactez-nous.',
+    'signup.error.password.weak':'Mot de passe trop faible. Utilisez au moins 8 caractères, avec des lettres et des chiffres.',
+    'signup.error.server':'Le compte n\'a pas pu être créé à cause d\'une erreur du serveur. Réessayez, ou contactez-nous si le problème persiste.',
     'signup.error.plan':'Formule invalide — rechargez la page (Ctrl+Maj+R) et réessayez.',
     'signup.confirm.email':'Compte créé. Vérifiez votre boîte e-mail et cliquez sur le lien de confirmation, puis connectez-vous.',
     'account.email.title':'Adresse email', 'account.email.saved':'Adresse email mise à jour.', 'account.email.label':'Email', 'account.save':'Enregistrer',
@@ -3444,6 +3448,9 @@ const I18N = {
     'signup.error.email.used':'This email address is already in use.', 'signup.error.password.short':'The password must be at least 6 characters.',
     'signup.error.password.mismatch':'The confirmation doesn\'t match the password.',
     'signup.error.generic':'Sign-up failed for now. Please try again in a moment.',
+    'signup.error.ratelimit':'Too many sign-ups in a short time: sending the confirmation email is temporarily limited. Please try again in an hour, or contact us.',
+    'signup.error.password.weak':'Password too weak. Use at least 8 characters, with letters and numbers.',
+    'signup.error.server':'Your account couldn\'t be created because of a server error. Please try again, or contact us if it keeps happening.',
     'signup.error.plan':'Invalid plan — refresh the page (Ctrl+Shift+R) and try again.',
     'signup.confirm.email':'Account created. Check your inbox and click the confirmation link, then log in.',
     'account.email.title':'Email address', 'account.email.saved':'Email address updated.', 'account.email.label':'Email', 'account.save':'Save',
@@ -3874,6 +3881,9 @@ const I18N = {
     'signup.error.email.used':'هذا البريد الإلكتروني مستخدم بالفعل.', 'signup.error.password.short':'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.',
     'signup.error.password.mismatch':'التأكيد لا يطابق كلمة المرور.',
     'signup.error.generic':'تعذّر إنشاء الحساب حاليًا. حاول مرة أخرى بعد لحظات.',
+    'signup.error.ratelimit':'عدد كبير من التسجيلات في وقت قصير: إرسال رسالة التأكيد محدود مؤقتًا. حاول مرة أخرى بعد ساعة، أو تواصل معنا.',
+    'signup.error.password.weak':'كلمة المرور ضعيفة. استخدم 8 أحرف على الأقل، مع حروف وأرقام.',
+    'signup.error.server':'تعذّر إنشاء الحساب بسبب خطأ في الخادم. حاول مرة أخرى، أو تواصل معنا إذا استمرت المشكلة.',
     'signup.error.plan':'باقة غير صالحة — أعد تحميل الصفحة (Ctrl+Shift+R) وحاول مجددًا.',
     'signup.confirm.email':'تم إنشاء الحساب. تحقّق من بريدك الإلكتروني واضغط على رابط التأكيد، ثم سجّل الدخول.',
     'account.email.title':'البريد الإلكتروني', 'account.email.saved':'تم تحديث البريد الإلكتروني.', 'account.email.label':'البريد الإلكتروني', 'account.save':'حفظ',
@@ -4359,7 +4369,9 @@ function viewSignup(){
   const planId = STATE.plans[signupDraft.plan]? signupDraft.plan : 'proprietaire';
   const plan = STATE.plans[planId];
   const isBusiness = plan.role==='business';
-  const err = signupError? `<div class="aq-note bad">${ic('i-info')}<div>${t(signupError)}</div></div>` : '';
+  const detail = (signupError==='signup.error.server' || signupError==='signup.error.generic') && signupErrorDetail
+    ? `<div style="margin-top:4px;font-size:11.5px;opacity:.75;">${esc(signupErrorDetail)}</div>` : '';
+  const err = signupError? `<div class="aq-note bad">${ic('i-info')}<div>${t(signupError)}${detail}</div></div>` : '';
   const opt = (role)=> `<optgroup label="${t('plan.role.'+role)}">${plansForRole(role).map(p=>`<option value="${p.id}" ${planId===p.id?'selected':''}>${esc(planLabel(p.id))} · ${fmt(p.priceMAD)} ${planUnitLabel(p)}</option>`).join('')}</optgroup>`;
   return `
     <div class="aq-authwrap">
@@ -4879,7 +4891,16 @@ function bindPublicActions(){
       const res = await BACKEND.signUp(email, password, { role: plan.role, nom, ville, plan: planId });
       signupBtn.disabled = false;
       if(res.error){
-        signupError = /registered|exists|already/i.test(res.error.message||'') ? 'signup.error.email.used' : 'signup.error.generic';
+        // Montrer la vraie raison (Supabase) au lieu d'un message générique.
+        const m = String(res.error.message||''), st = res.error.status, cd = String(res.error.code||'');
+        console.error('signUp failed', st, cd, m);
+        signupErrorDetail = m;
+        signupError = /registered|exists|already/i.test(m) ? 'signup.error.email.used'
+          : (st===429 || /rate limit|too many/i.test(m+cd)) ? 'signup.error.ratelimit'
+          : /weak|password/i.test(m+cd) ? 'signup.error.password.weak'
+          : /invalid.*email|email.*invalid/i.test(m) ? 'signup.error.email.invalid'
+          : (/database error|unexpected_failure/i.test(m+cd) || st>=500) ? 'signup.error.server'
+          : 'signup.error.generic';
         return render();
       }
       signupError = null; loginError = null;
