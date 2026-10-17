@@ -163,6 +163,26 @@ svg{width:16px;height:16px;flex-shrink:0;}
 .topbar-title{font-size:16.5px;font-weight:700;}
 .topbar-sub{font-size:12px;color:var(--text-faint);margin-top:1px;}
 .topbar-right{margin-inline-start:auto;display:flex;align-items:center;gap:10px;}
+.tut-btn svg{width:14px;height:14px;}
+@media (max-width:640px){.tut-btn span{display:none;}}
+.tut-tip{align-items:center;margin-bottom:14px;}
+.tut-tip > svg{width:16px;height:16px;flex:0 0 auto;}
+.tut-tip-actions{margin-inline-start:auto;display:flex;gap:6px;flex:0 0 auto;}
+.tut-modal{position:fixed;inset:0;z-index:9999;background:rgba(4,12,20,.72);display:flex;align-items:center;justify-content:center;padding:16px;}
+.tut-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:min(1100px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;}
+.tut-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
+.tut-title{font-weight:700;font-size:14px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tut-video{width:100%;max-height:calc(100vh - 140px);background:#000;display:block;}
+.tut-foot{padding:6px 12px;font-size:11.5px;color:var(--text-faint);}
+.tut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.tut-card{display:flex;flex-direction:column;gap:8px;padding:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:start;color:var(--text);font:inherit;overflow:hidden;}
+.tut-card:hover{border-color:var(--accent);}
+.tut-thumb{position:relative;display:block;aspect-ratio:16/9;background:var(--bg);}
+.tut-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.tut-play{position:absolute;inset:0;margin:auto;width:44px;height:44px;border-radius:50%;background:rgba(4,12,20,.65);display:flex;align-items:center;justify-content:center;color:#fff;}
+.tut-play svg{width:18px;height:18px;}
+.tut-len{position:absolute;right:6px;bottom:6px;background:rgba(4,12,20,.75);color:#fff;font-size:11px;padding:1px 5px;border-radius:3px;}
+.tut-name{padding:0 10px 10px;font-weight:600;font-size:13px;}
 .user-chip{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:4px;background:var(--surface);border:1px solid var(--border);}
 .user-avatar{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;}
 .user-chip-name{font-size:12.3px;font-weight:600;}
@@ -625,6 +645,7 @@ textarea.input{resize:vertical;min-height:64px;font-family:var(--font-body);}
 <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2.8"/></symbol>
 <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
 <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
 <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="10.5" x2="12" y2="15.5"/><circle cx="12" cy="7.6" r="0.9" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6"/></symbol>
@@ -3062,7 +3083,7 @@ const I18N = {
     'plan.feat.electrolyseur':'dimensionnements d\'électrolyseur au sel',
     'plan.feat.cataloguewrite':'Peut ajouter ses propres produits au catalogue', 'plan.role.particulier':'Particulier', 'plan.role.business':'Business',
     'part.devis.info':'Les produits et tarifs affichés sont ceux proposés par {biz}. Ajoutez vos lignes puis générez votre devis.',
-    'grp.compte':'Compte', 'nav.account':'Paramètres du compte', 'page.account.t':'Paramètres du compte', 'page.account.s':'Email, mot de passe et déconnexion',
+    'nav.tutorials':'Tutoriels vidéo', 'page.tutorials.t':'Tutoriels vidéo', 'page.tutorials.s':'Apprenez chaque module en moins d’une minute', 'tut.btn':'Tutoriel', 'tut.tip':'Nouveau ici ? Regardez le tutoriel de {n} secondes.', 'tut.watch':'Regarder', 'tut.dismiss':'Masquer', 'tut.close':'Fermer', 'tut.next':'Suivant', 'tut.playall':'Tout regarder', 'tut.title.10':'Cahier des charges', 'tut.lang':'Vidéos en anglais.', 'tut.business':'Compte professionnel', 'tut.owner':'Compte propriétaire', 'grp.compte':'Compte', 'nav.account':'Paramètres du compte', 'page.account.t':'Paramètres du compte', 'page.account.s':'Email, mot de passe et déconnexion',
     'public.nav.home':'Accueil', 'public.nav.pricing':'Tarifs', 'public.nav.login':'Connexion',
     'public.footer':'© 2026 AquaLC — Plateforme de gestion pour professionnels de la piscine.',
     'landing.hero.title':'La plateforme tout-en-un pour les professionnels de la piscine',
@@ -3495,7 +3516,7 @@ const I18N = {
     'plan.feat.electrolyseur':'salt electrolyzer sizing',
     'plan.feat.cataloguewrite':'Can add their own products to the catalogue', 'plan.role.particulier':'Individual', 'plan.role.business':'Business',
     'part.devis.info':'The products and prices shown are those offered by {biz}. Add your lines, then generate your quote.',
-    'grp.compte':'Account', 'nav.account':'Account settings', 'page.account.t':'Account settings', 'page.account.s':'Email, password and logout',
+    'nav.tutorials':'Video tutorials', 'page.tutorials.t':'Video tutorials', 'page.tutorials.s':'Learn every module in under a minute', 'tut.btn':'Tutorial', 'tut.tip':'New here? Watch the {n}-second tutorial.', 'tut.watch':'Watch', 'tut.dismiss':'Hide', 'tut.close':'Close', 'tut.next':'Next', 'tut.playall':'Watch all', 'tut.title.10':'Spec sheets', 'tut.lang':'Videos are in English.', 'tut.business':'Business account', 'tut.owner':'Pool owner account', 'grp.compte':'Account', 'nav.account':'Account settings', 'page.account.t':'Account settings', 'page.account.s':'Email, password and logout',
     'public.nav.home':'Home', 'public.nav.pricing':'Pricing', 'public.nav.login':'Log in',
     'public.footer':'© 2026 AquaLC — Management platform for pool professionals.',
     'landing.hero.title':'The all-in-one platform for pool professionals',
@@ -3928,7 +3949,7 @@ const I18N = {
     'plan.feat.electrolyseur':'تحجيم محلّل كهربائي للملح',
     'plan.feat.cataloguewrite':'يمكنه إضافة منتجاته الخاصة إلى الكتالوج', 'plan.role.particulier':'فردي', 'plan.role.business':'بزنس',
     'part.devis.info':'المنتجات والأسعار المعروضة هي تلك التي يقترحها {biz}. أضف بنودك ثم أنشئ عرض سعرك.',
-    'grp.compte':'الحساب', 'nav.account':'إعدادات الحساب', 'page.account.t':'إعدادات الحساب', 'page.account.s':'البريد الإلكتروني، كلمة المرور وتسجيل الخروج',
+    'nav.tutorials':'دروس الفيديو', 'page.tutorials.t':'دروس الفيديو', 'page.tutorials.s':'تعلّم كل وحدة في أقل من دقيقة', 'tut.btn':'درس', 'tut.tip':'جديد هنا؟ شاهد الدرس ({n} ثانية).', 'tut.watch':'مشاهدة', 'tut.dismiss':'إخفاء', 'tut.close':'إغلاق', 'tut.next':'التالي', 'tut.playall':'مشاهدة الكل', 'tut.title.10':'دفتر الشروط', 'tut.lang':'الفيديوهات باللغة الإنجليزية.', 'tut.business':'حساب المهنيين', 'tut.owner':'حساب صاحب المسبح', 'grp.compte':'الحساب', 'nav.account':'إعدادات الحساب', 'page.account.t':'إعدادات الحساب', 'page.account.s':'البريد الإلكتروني، كلمة المرور وتسجيل الخروج',
     'public.nav.home':'الرئيسية', 'public.nav.pricing':'الأسعار', 'public.nav.login':'تسجيل الدخول',
     'public.footer':'© 2026 أكوالوجيك — منصة إدارة لمحترفي المسابح.',
     'landing.hero.title':'المنصة الشاملة لمحترفي المسابح',
@@ -4022,6 +4043,7 @@ const NAV = {
       {key:'business.abonnement', label:'nav.business.abonnement', icon:'i-card'},
     ]},
     {group:'grp.compte', items:[
+      {key:'business.tutorials', label:'nav.tutorials', icon:'i-play'},
       {key:'business.account', label:'nav.account', icon:'i-user'},
     ]},
   ],
@@ -4067,6 +4089,7 @@ function getNavForRole(role){
     {group:'grp.projet', items:projetItems},
     {group:'grp.compte', items:[
       {key:'particulier.abonnement', label:'nav.business.abonnement', icon:'i-card'},
+      {key:'particulier.tutorials', label:'nav.tutorials', icon:'i-play'},
       {key:'particulier.account', label:'nav.account', icon:'i-user'},
     ]},
   ];
@@ -4100,6 +4123,8 @@ const PAGE_META = {
   'business.account':['page.account.t','page.account.s'],
   'particulier.account':['page.account.t','page.account.s'],
   'particulier.abonnement':['page.business.abonnement.t','page.business.abonnement.s'],
+  'business.tutorials':['page.tutorials.t','page.tutorials.s'],
+  'particulier.tutorials':['page.tutorials.t','page.tutorials.s'],
 };
 // 'particulier.devis' means two different things depending on plan: a
 // self-service quote builder (Propriétaire) or a request sent to the
@@ -5162,6 +5187,7 @@ function render(){
           <div class="topbar-sub">${t(pageMetaFor(STATE.view)[1])}</div>
         </div>
         <div class="topbar-right">
+          ${tutorialFor(STATE.view) ? `<button class="btn btn-sm tut-btn" data-action="tut-play" data-tut="${tutorialFor(STATE.view).id}" data-queue="${(tutorialFor(STATE.view).queue||[]).join(',')}">${ic('i-play')} <span>${t('tut.btn')}</span></button>` : ''}
           ${isOffline ? `<div class="status-badge" style="background:var(--warning-soft);color:var(--warning);padding:4px 8px;border-radius:var(--radius);font-size:12px;font-weight:500;">${t('status.offline')}</div>` : ''}
           <div class="user-chip">
             <div class="user-avatar">${esc(displayInitials(role))}</div>
@@ -5174,7 +5200,7 @@ function render(){
       <div class="content" id="content"></div>
     </div>
   `;
-  $('#content').innerHTML = renderView(role, STATE.view);
+  $('#content').innerHTML = tutorialTip(STATE.view) + renderView(role, STATE.view);
   document.body.classList.toggle('trial-mode', STATE.auth.loggedIn && onTrialOnly(STATE.role));
   bindGlobalActions();
   bindViewActions(role, STATE.view);
@@ -5220,6 +5246,106 @@ function bindGlobalActions(){
   $$('[data-action="close-menu"]').forEach(el=> el.addEventListener('click', ()=> setMenu(false)));
   const lo = $('[data-action="logout"]'); if(lo) lo.addEventListener('click', doLogout);
   const ept = $('[data-action="exit-plan-test"]'); if(ept) ept.addEventListener('click', exitPlanTest);
+  $$('[data-action="tut-play"]').forEach(b=> b.addEventListener('click', ()=>{ markTutorialSeen(STATE.view); const tip=$("#tut-tip"); if(tip) tip.remove(); openTutorial(b.dataset.tut, (b.dataset.queue||'').split(',').filter(Boolean)); }));
+  $$('[data-action="tut-hide"]').forEach(b=> b.addEventListener('click', ()=>{ markTutorialSeen(STATE.view); const tip=$('#tut-tip'); if(tip) tip.remove(); }));
+}
+
+/* ---------------- Video tutorials ----------------
+   One short narrated screen recording per module (tutorials/NN.mp4 + NN.jpg poster),
+   shown from a topbar button, a one-time tip on first visit, and the Tutorials page. */
+const TUTORIALS = [
+  {id:'01', group:'business', view:'business.overview', nav:'nav.business.overview', sec:21},
+  {id:'02', group:'business', view:'business.clients', nav:'nav.business.clients', sec:54},
+  {id:'03', group:'business', view:'business.etude', nav:'nav.business.etude', sec:75},
+  {id:'04', group:'business', view:'business.entretien', nav:'nav.business.entretien', sec:39},
+  {id:'05', group:'business', view:'business.hydraulique', nav:'nav.business.hydraulique', sec:28},
+  {id:'06', group:'business', view:'business.sterilisation', nav:'nav.business.sterilisation', sec:38},
+  {id:'07', group:'business', view:'business.catalogue', nav:'nav.business.catalogue', sec:42},
+  {id:'08', group:'business', view:'business.boutique', nav:'nav.business.boutique', sec:40},
+  {id:'09', group:'business', view:'business.devis', nav:'nav.business.devis', sec:54, queue:['09','10']},
+  {id:'10', group:'business', view:null, nav:'tut.title.10', sec:73},
+  {id:'11', group:'business', view:'business.abonnement', nav:'nav.business.abonnement', sec:17},
+  {id:'12', group:'business', view:'business.account', nav:'nav.account', sec:22},
+  {id:'13', group:'particulier', view:'particulier.bassin', nav:'nav.particulier.bassin', sec:17},
+  {id:'14', group:'particulier', view:'particulier.entretien', nav:'nav.particulier.entretien', sec:18},
+  {id:'15', group:'particulier', view:'particulier.historique', nav:'nav.particulier.historique', sec:9},
+  {id:'16', group:'particulier', view:'particulier.etude', nav:'nav.particulier.etude', sec:21},
+  {id:'17', group:'particulier', view:'particulier.sterilisation', nav:'nav.particulier.sterilisation', sec:15},
+  {id:'18', group:'particulier', view:'particulier.devis', nav:'nav.particulier.devis.self', sec:25, plan:'proprietaire'},
+];
+const TUT_EN_TITLES = {'01':'Dashboard','02':'Clients','03':'Study & Sizing','04':'Maintenance','05':'Hydraulics','06':'Sterilization','07':'Product catalog','08':'Online store','09':'Quotes','10':'Spec sheets','11':'Subscription','12':'Account settings','13':'My pool','14':'Water analysis','15':'Test history','16':'Project estimate','17':'Sterilization','18':'My quote'};
+function tutTitle(tu){ const k = tu.nav, v = t(k); return (v && v!==k) ? v : TUT_EN_TITLES[tu.id]; }
+function tutorialsForRole(role){
+  const plan = (accountForRole(role)||{}).plan;
+  return TUTORIALS.filter(tu=> tu.group===role && (!tu.plan || tu.plan===plan));
+}
+function tutorialFor(view){
+  const role = String(view||'').split('.')[0];
+  if(role!=='business' && role!=='particulier') return null;
+  return tutorialsForRole(role).find(tu=> tu.view===view) || null;
+}
+function tutSeen(){ try{ return JSON.parse(localStorage.getItem('aqualc_tut_seen')||'{}') || {}; }catch(e){ return {}; } }
+function markTutorialSeen(view){ try{ const m = tutSeen(); m[view] = 1; localStorage.setItem('aqualc_tut_seen', JSON.stringify(m)); }catch(e){} }
+function tutorialTip(view){
+  const tu = tutorialFor(view);
+  if(!tu || tutSeen()[view] || accountLocked(STATE.role)) return '';
+  return `<div class="callout info tut-tip" id="tut-tip">${ic('i-play')}<div>${tf('tut.tip',{n:tu.sec})}</div>
+    <div class="tut-tip-actions"><button class="btn btn-sm btn-primary" data-action="tut-play" data-tut="${tu.id}" data-queue="${(tu.queue||[]).join(',')}">${t('tut.watch')}</button>
+    <button class="btn btn-sm btn-ghost" data-action="tut-hide">${t('tut.dismiss')}</button></div></div>`;
+}
+// Plays one tutorial, or a list of them back to back ("Watch all").
+function openTutorial(id, queue){
+  closeTutorial();
+  const list = queue && queue.length ? queue : [id];
+  let idx = Math.max(0, list.indexOf(id));
+  const wrap = document.createElement('div');
+  wrap.className = 'tut-modal'; wrap.id = 'tut-modal';
+  wrap.innerHTML = `<div class="tut-box" role="dialog" aria-modal="true">
+      <div class="tut-head"><div class="tut-title"></div>
+        <button class="btn btn-sm tut-next" style="display:none">${t('tut.next')}</button>
+        <button class="theme-toggle tut-x" title="${t('tut.close')}" aria-label="${t('tut.close')}">${ic('i-x')}</button></div>
+      <video class="tut-video" controls playsinline preload="metadata"></video>
+      <div class="tut-foot">${t('tut.lang')}</div>
+    </div>`;
+  document.body.appendChild(wrap);
+  const v = wrap.querySelector('video'), title = wrap.querySelector('.tut-title'), next = wrap.querySelector('.tut-next');
+  const load = ()=>{ const tu = TUTORIALS.find(x=>x.id===list[idx]); if(!tu) return;
+    title.textContent = (list.length>1 ? (idx+1)+'/'+list.length+' · ' : '') + tutTitle(tu);
+    v.poster = 'tutorials/'+tu.id+'.jpg'; v.src = 'tutorials/'+tu.id+'.mp4';
+    next.style.display = idx < list.length-1 ? '' : 'none';
+    const p = v.play(); if(p && p.catch) p.catch(()=>{}); };
+  v.addEventListener('ended', ()=>{ if(idx < list.length-1){ idx++; load(); } });
+  next.addEventListener('click', ()=>{ if(idx < list.length-1){ idx++; load(); } });
+  wrap.querySelector('.tut-x').addEventListener('click', closeTutorial);
+  wrap.addEventListener('click', e=>{ if(e.target===wrap) closeTutorial(); });
+  document.addEventListener('keydown', tutKey);
+  load();
+}
+function tutKey(e){ if(e.key==='Escape') closeTutorial(); }
+function closeTutorial(){
+  const m = document.getElementById('tut-modal');
+  if(m){ const v = m.querySelector('video'); if(v){ v.pause(); v.removeAttribute('src'); v.load(); } m.remove(); }
+  document.removeEventListener('keydown', tutKey);
+}
+function viewTutorials(role){
+  const list = tutorialsForRole(role);
+  return `<div class="card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="font-weight:700;">${t(role==='business'?'tut.business':'tut.owner')}</div>
+      <div style="font-size:12px;color:var(--text-faint);">${t('tut.lang')}</div>
+      <button class="btn btn-sm btn-primary" style="margin-inline-start:auto;" data-action="tut-all">${ic('i-play')} ${t('tut.playall')}</button>
+    </div>
+    <div class="tut-grid">${list.map(tu=>`
+      <button class="tut-card" data-action="tut-open" data-tut="${tu.id}">
+        <span class="tut-thumb"><img src="tutorials/${tu.id}.jpg" alt="" loading="lazy"><span class="tut-play">${ic('i-play')}</span><span class="tut-len">${Math.floor(tu.sec/60)}:${String(tu.sec%60).padStart(2,'0')}</span></span>
+        <span class="tut-name">${esc(tutTitle(tu))}</span>
+      </button>`).join('')}</div>
+  </div>`;
+}
+function bindTutorials(){
+  const ids = tutorialsForRole(STATE.role).map(tu=>tu.id);
+  $$('[data-action="tut-open"]').forEach(b=> b.addEventListener('click', ()=> openTutorial(b.dataset.tut)));
+  const all = $('[data-action="tut-all"]'); if(all) all.addEventListener('click', ()=> openTutorial(ids[0], ids));
 }
 
 /* ---------------- View dispatcher ---------------- */
@@ -5252,6 +5378,8 @@ function renderView(role, view){
     case 'admin.account': return viewAccountSettings('admin');
     case 'business.account': return viewAccountSettings('business');
     case 'particulier.account': return viewAccountSettings('particulier');
+    case 'business.tutorials': return viewTutorials('business');
+    case 'particulier.tutorials': return viewTutorials('particulier');
     default: return `<div class="empty">Page introuvable.</div>`;
   }
 }
@@ -5281,6 +5409,7 @@ function bindViewActions(role, view){
     case 'admin.account': return bindAccountSettings('admin');
     case 'business.account': return bindAccountSettings('business');
     case 'particulier.account': return bindAccountSettings('particulier');
+    case 'business.tutorials': case 'particulier.tutorials': return bindTutorials();
     default: return;
   }
 }
