@@ -665,6 +665,14 @@ function convertMAD(amountMAD, currency){
   const rate = parseFloat(STATE.exchangeRates && STATE.exchangeRates[currency]) || 1;
   return amountMAD / rate;
 }
+// Prices are stored in MAD (catalog, quote lines, store, client payments) and shown and
+// entered in the account's document currency (Quote & Specs > Document currency).
+function dispCur(){ return (STATE.devisTemplate && STATE.devisTemplate.devise) || 'MAD'; }
+function toDisp(n){ const v = convertMAD(parseFloat(n)||0, dispCur()); return dispCur()==='MAD' ? Math.round(v) : Math.round(v*100)/100; }
+function fromDisp(v){ const n = parseFloat(v); if(isNaN(n)) return 0; const c = dispCur(); if(c==='MAD') return n;
+  const r = parseFloat(STATE.exchangeRates && STATE.exchangeRates[c]) || 1; return n * r; }
+// Label with the display currency, e.g. 'Unit price ({cur})'.
+function tc(key){ return tf(key, {cur: dispCur()}); }
 const uid = ()=> 'id'+Math.random().toString(36).slice(2,10);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -810,7 +818,29 @@ function term(s){
 }
 // Unité de puissance des pompes : CV en français, HP ailleurs.
 function hpUnit(){ return STATE.lang==='fr' ? 'CV' : 'HP'; }
-const TYPE_PROJET_LABEL_KEY = {construction:'cps.type.construction', renovation:'cps.type.renovation', mise_aux_normes:'cps.type.misesauxnormes'};
+// Standards offered on the spec sheet: French NF/DTU in French, international ones otherwise.
+const NORMES_I18N = {
+  en:[
+    'EN 16582-1 — Domestic swimming pools: general requirements, including safety',
+    'EN 16713-1 — Domestic swimming pools: water systems, filtration',
+    'IEC 60364-7-702 — Electrical installations for swimming pools and fountains',
+    'IEC 60335-2-41 — Safety of electric pumps',
+    'ANSI/PHTA/ICC-5 — Residential inground swimming pools (USA)',
+    'Local building and safety codes — barriers, alarms and covers',
+    'Local health regulations — water treatment and quality',
+  ],
+  ar:[
+    'EN 16582-1 — المسابح المنزلية: المتطلبات العامة بما فيها السلامة',
+    'EN 16713-1 — المسابح المنزلية: أنظمة المياه والترشيح',
+    'IEC 60364-7-702 — التركيبات الكهربائية للمسابح والنوافير',
+    'IEC 60335-2-41 — سلامة المضخات الكهربائية',
+    'ANSI/PHTA/ICC-5 — المسابح السكنية المدفونة (الولايات المتحدة)',
+    'قوانين البناء والسلامة المحلية — الحواجز والإنذارات والأغطية',
+    'اللوائح الصحية المحلية — معالجة المياه وجودتها',
+  ],
+};
+function normesDisponibles(){ return STATE.lang==='fr' ? NORMES_DISPONIBLES : (NORMES_I18N[STATE.lang] || NORMES_I18N.en); }
+const TYPE_PROJET_LABEL_KEY ={construction:'cps.type.construction', renovation:'cps.type.renovation', mise_aux_normes:'cps.type.misesauxnormes'};
 function typeProjetLabel(k){ return t(TYPE_PROJET_LABEL_KEY[k]) || k; }
 const COURANT_CONSEIL_KEY = {
   'Triphasé (choix confirmé)':'etude.courant.triconfirme',
@@ -1097,14 +1127,14 @@ function encodeStorePayload(b){
   const s = b.boutique || {};
   let budget = STORE_FICHE_BUDGET;
   const payload = {
-    v:1,
+    v:1, k: dispCur(),
     t: (s.titre || b.nom || '').slice(0,80),
     i: (s.intro || '').slice(0,400),
     w: waNumber(s.whatsapp),
     p: (s.telephone || '').slice(0,40),
     e: (s.email || '').slice(0,120),
     items: boutiqueProduits(b).map(p=>{
-      const it = {n:p.nom.slice(0,90), c:p.cat.slice(0,40), d:(p.description||'').slice(0,400), u:p.unite, x:Math.round(p.prix||0)};
+      const it = {n:p.nom.slice(0,90), c:p.cat.slice(0,40), d:(p.description||'').slice(0,400), u:p.unite, x:toDisp(p.prix||0)};
       // Carry the catalogue datasheet inside the link, greedily, until the budget is spent.
       if(p.fiche && p.fiche.dataUrl && p.fiche.dataUrl.length <= budget){
         it.f = {n:(p.fiche.name||'fiche.pdf').slice(0,80), u:p.fiche.dataUrl};
@@ -2716,7 +2746,7 @@ const I18N = {
     'page.particulier.cps.t':'Mon CPS', 'page.particulier.cps.s':'Cahier des prescriptions spéciales de votre projet',
     'status.actif':'actif', 'status.prospect':'prospect', 'status.inactif':'inactif', 'status.terminé':'terminé', 'status.en attente':'en attente', 'status.suspendu':'suspendu', 'status.indépendant':'indépendant', 'status.invité':'invité', 'status.offline':'Hors ligne',
     'th.societe':'Société', 'th.ville':'Ville', 'th.plan':'Plan', 'th.clients':'Clients', 'th.statut':'Statut', 'th.inscription':'Inscription',
-    'th.nom':'Nom', 'th.rattache':'Rattaché à', 'th.volume':'Volume bassin', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Accès',
+    'ph.client.email':'client@exemple.ma', 'th.nom':'Nom', 'th.rattache':'Rattaché à', 'th.volume':'Volume bassin', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Accès',
     'btn.suspend':'Suspendre', 'btn.reactivate':'Réactiver', 'btn.validate':'Valider',
     'admin.ov.kpi.business':'Comptes Business', 'admin.ov.kpi.actifs':'actifs',
     'admin.ov.kpi.particuliers':'Comptes Particuliers', 'admin.ov.kpi.particuliers.sub':'tous espaces confondus',
@@ -2788,7 +2818,7 @@ const I18N = {
     'pay.aucun':'Non facturé', 'pay.aucun.short':'Aucun', 'pay.non':'Non payé', 'pay.partiel':'Partiel', 'pay.paye':'Payé',
     'client.phone':'Téléphone', 'client.email':'E-mail', 'client.adresse':'Adresse du chantier', 'client.adresse.ph':'Ex. Lotissement Al Manar, Marrakech', 'optional':'(optionnel)', 'client.desc':'Description du client',
     'client.desc.ph':'Contexte du projet, type de bassin, accès au chantier, préférences du client…',
-    'client.pay.title':'Paiement', 'client.pay.montantpaye':'Montant payé (MAD)', 'client.pay.montanttotal':'Montant total (MAD)',
+    'client.pay.title':'Paiement', 'client.pay.montantpaye':'Montant payé ({cur})', 'client.pay.montanttotal':'Montant total ({cur})',
     'client.pay.reste':'Reste à payer : {n}', 'client.pay.recap':'{paye} encaissés sur {total}',
     'client.tasks.title':'Étapes réalisées', 'client.tasks.add':'Ajouter l\'étape',
     'client.tasks.ph':'Ex. Visite technique, devis envoyé, installation du filtre…',
@@ -2860,7 +2890,7 @@ const I18N = {
     'catalogue.nocat':'Aucune catégorie pour le moment.', 'catalogue.newcat.ph':'Nouvelle catégorie (ex. Robotique)', 'catalogue.addcat':'Ajouter',
     'catalogue.readonly':'Ce catalogue est géré par le plan Business. Votre plan y a accès en lecture seule.',
     'catalogue.newproduct':'Nouveau produit', 'catalogue.productname':'Nom du produit', 'ph.productname':'Ex. Vanne 6 voies',
-    'catalogue.category':'Catégorie', 'catalogue.unit':'Unité', 'ph.unit':'u, kg, m, sac…', 'catalogue.price':'Prix (MAD)',
+    'catalogue.category':'Catégorie', 'catalogue.unit':'Unité', 'ph.unit':'u, kg, m, sac…', 'catalogue.price':'Prix ({cur})',
     'catalogue.addtocatalogue':'Ajouter au catalogue', 'catalogue.createcatfirst':'Créez d\'abord une catégorie ci-dessus.',
     'export.csv':'Exporter (CSV)',
     'catalogue.allproducts':'Tous les produits',
@@ -2887,7 +2917,7 @@ const I18N = {
     'catalogue.fiche.quota':'Le stockage du navigateur est plein — impossible d\'enregistrer cette fiche. Supprimez d\'autres fiches techniques ou réduisez la taille du PDF.',
     'confirm.deletefiche':'Supprimer la fiche technique de « {nom} » ?',
     'confirm.deleteproduct':'Supprimer « {nom} » du catalogue partagé ? Cette action est immédiate et affecte tous les comptes qui utilisent ce catalogue.',
-    'th.produit':'Produit', 'th.categorie':'Catégorie', 'th.prix':'Prix (MAD)', 'th.qte':'Qté', 'th.pu':'PU (MAD)', 'th.total':'Total',
+    'th.produit':'Produit', 'th.categorie':'Catégorie', 'th.prix':'Prix ({cur})', 'th.qte':'Qté', 'th.pu':'PU ({cur})', 'th.total':'Total',
     'th.periode':'Période', 'th.montant':'Montant', 'th.message':'Message', 'th.chlore':'Chlore (mg/L)',
     'devis.tab.devis':'Devis', 'devis.tab.cps':'Cahier des Prescriptions Spéciales (CPS)',
     'devis.customize':'Personnalisation du document', 'devis.societename':'Nom de la société', 'devis.logo':'Logo',
@@ -2903,7 +2933,7 @@ const I18N = {
     'devis.devise':'Devise du document', 'devis.devise.mad':'MAD — Dirham marocain', 'devis.devise.eur':'EUR — Euro', 'devis.devise.usd':'USD — Dollar américain',
     'devis.lignes':'Lignes du devis', 'devis.addline':'Ajouter une ligne', 'devis.fromcatalogue':'Depuis le catalogue (optionnel)',
     'devis.freeline':'— Ligne libre / hors catalogue —', 'devis.designation':'Désignation', 'ph.designation':'Nom du produit ou de la prestation',
-    'devis.qte':'Quantité', 'devis.pu':'PU (MAD)', 'devis.addline.btn':'Ajouter la ligne',
+    'devis.qte':'Quantité', 'devis.pu':'PU ({cur})', 'devis.addline.btn':'Ajouter la ligne',
     'devis.noitems':'Aucune ligne — ajoutez des produits depuis les modules de calcul.', 'devis.clear':'Vider le devis',
     'doc.hist.title':'Devis enregistrés', 'doc.hist.cpstitle':'CPS enregistrés',
     'doc.hist.savedevis':'Enregistrer ce devis', 'doc.hist.savecps':'Enregistrer ce CPS',
@@ -3107,8 +3137,8 @@ const I18N = {
     'boutique.title':'My online store', 'boutique.preview':'Preview',
     'boutique.intro.note':'Pick the products to display, then share your store link with clients via WhatsApp, email or SMS. Prototype: the link holds a snapshot of your store at share time (no PDF) — regenerate it after any change.',
     'boutique.active':'Store active',
-    'boutique.titre':'Store name', 'boutique.whatsapp':'WhatsApp (orders)', 'boutique.whatsapp.ph':'e.g. 212612345678',
-    'boutique.intro':'Intro text', 'boutique.intro.ph':'e.g. Pool equipment and products — delivery in Casablanca and area.',
+    'boutique.titre':'Store name', 'boutique.whatsapp':'WhatsApp (orders)', 'boutique.whatsapp.ph':'e.g. 14155550123',
+    'boutique.intro':'Intro text', 'boutique.intro.ph':'e.g. Pool equipment and products, delivered in your area.',
     'boutique.share.title':'Share link', 'boutique.share.note':'Copy this link and send it to your clients. They open the store with no account, on phone or computer.',
     'boutique.copy':'Copy link', 'boutique.copied':'Link copied ✓', 'boutique.share.wa':'Share on WhatsApp',
     'boutique.share.msg':'Check out our online store:', 'boutique.share.empty':'Switch on at least one product below so the store is useful.',
@@ -3152,7 +3182,7 @@ const I18N = {
     'page.particulier.cps.t':'My spec sheets', 'page.particulier.cps.s':'Technical specifications for your pool project',
     'status.actif':'active', 'status.prospect':'prospect', 'status.inactif':'inactive', 'status.terminé':'completed', 'status.en attente':'pending', 'status.suspendu':'suspended', 'status.indépendant':'independent', 'status.invité':'invited', 'status.offline':'Offline',
     'th.societe':'Company', 'th.ville':'City', 'th.plan':'Plan', 'th.clients':'Clients', 'th.statut':'Status', 'th.inscription':'Signed up',
-    'th.nom':'Name', 'th.rattache':'Linked to', 'th.volume':'Pool volume', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Access',
+    'ph.client.email':'client@example.com', 'th.nom':'Name', 'th.rattache':'Linked to', 'th.volume':'Pool volume', 'th.date':'Date', 'th.note':'Note', 'th.acces':'Access',
     'btn.suspend':'Suspend', 'btn.reactivate':'Reactivate', 'btn.validate':'Approve',
     'admin.ov.kpi.business':'Business accounts', 'admin.ov.kpi.actifs':'active',
     'admin.ov.kpi.particuliers':'Individual accounts', 'admin.ov.kpi.particuliers.sub':'all spaces combined',
@@ -3220,11 +3250,11 @@ const I18N = {
     'biz.clients.new':'New client', 'biz.clients.fullname':'Full name', 'biz.clients.poolvolume':'Pool volume (m³)',
     'biz.clients.save':'Save client',
     'biz.clients.th.paiement':'Payment', 'biz.clients.details':'Details', 'biz.clients.close':'Close',
-    'action.delete':'Delete', 'ph.phone':'E.g. 06 12 34 56 78',
+    'action.delete':'Delete', 'ph.phone':'E.g. +1 415 555 0123',
     'pay.aucun':'Not billed', 'pay.aucun.short':'None', 'pay.non':'Unpaid', 'pay.partiel':'Partial', 'pay.paye':'Paid',
-    'client.phone':'Phone', 'client.email':'Email', 'client.adresse':'Site address', 'client.adresse.ph':'e.g. Lotissement Al Manar, Marrakech', 'optional':'(optional)', 'client.desc':'Client description',
+    'client.phone':'Phone', 'client.email':'Email', 'client.adresse':'Site address', 'client.adresse.ph':'e.g. 12 Palm Street, Springfield', 'optional':'(optional)', 'client.desc':'Client description',
     'client.desc.ph':'Project context, pool type, site access, client preferences…',
-    'client.pay.title':'Payment', 'client.pay.montantpaye':'Amount paid (MAD)', 'client.pay.montanttotal':'Total amount (MAD)',
+    'client.pay.title':'Payment', 'client.pay.montantpaye':'Amount paid ({cur})', 'client.pay.montanttotal':'Total amount ({cur})',
     'client.pay.reste':'Remaining: {n}', 'client.pay.recap':'{paye} collected of {total}',
     'client.tasks.title':'Completed steps', 'client.tasks.add':'Add step',
     'client.tasks.ph':'E.g. Site visit, quote sent, filter installed…',
@@ -3232,7 +3262,7 @@ const I18N = {
     'client.suivi.title':'Follow-up', 'client.suivi.add':'Add note',
     'client.suivi.ph':'Call, site visit, payment reminder, remark…',
     'client.suivi.empty':'No follow-up yet.',
-    'ph.clientname':'E.g. Amine Tazi', 'ph.city':'E.g. Casablanca', 'ph.volume40':'E.g. 40',
+    'ph.clientname':'E.g. John Smith', 'ph.city':'E.g. Springfield', 'ph.volume40':'E.g. 40',
     'etude.card.pool':'Pool characteristics', 'etude.forme':'Pool shape', 'etude.rect':'Rectangular', 'etude.ronde':'Round',
     'etude.longueur':'Length (m)', 'etude.largeur':'Width (m)', 'etude.diametre':'Diameter (m)',
     'etude.profmin':'Min depth (m)', 'etude.profmax':'Max depth (m)',
@@ -3296,7 +3326,7 @@ const I18N = {
     'catalogue.nocat':'No category yet.', 'catalogue.newcat.ph':'New category (e.g. Robotics)', 'catalogue.addcat':'Add',
     'catalogue.readonly':'This catalogue is managed by the Business plan. Your plan has read-only access.',
     'catalogue.newproduct':'New product', 'catalogue.productname':'Product name', 'ph.productname':'E.g. 6-way valve',
-    'catalogue.category':'Category', 'catalogue.unit':'Unit', 'ph.unit':'unit, kg, m, bag…', 'catalogue.price':'Price (MAD)',
+    'catalogue.category':'Category', 'catalogue.unit':'Unit', 'ph.unit':'unit, kg, m, bag…', 'catalogue.price':'Price ({cur})',
     'catalogue.addtocatalogue':'Add to catalog', 'catalogue.createcatfirst':'Create a category above first.',
     'export.csv':'Export (CSV)',
     'catalogue.allproducts':'All products',
@@ -3323,7 +3353,7 @@ const I18N = {
     'catalogue.fiche.quota':'Browser storage is full — this datasheet could not be saved. Remove other datasheets or use a smaller PDF.',
     'confirm.deletefiche':'Delete the datasheet for "{nom}"?',
     'confirm.deleteproduct':'Delete "{nom}" from the shared catalogue? This is immediate and affects every account using this catalogue.',
-    'th.produit':'Product', 'th.categorie':'Category', 'th.prix':'Price (MAD)', 'th.qte':'Qty', 'th.pu':'Unit price (MAD)', 'th.total':'Total',
+    'th.produit':'Product', 'th.categorie':'Category', 'th.prix':'Price ({cur})', 'th.qte':'Qty', 'th.pu':'Unit price ({cur})', 'th.total':'Total',
     'th.periode':'Period', 'th.montant':'Amount', 'th.message':'Message', 'th.chlore':'Chlorine (mg/L)',
     'devis.tab.devis':'Quote', 'devis.tab.cps':'Spec sheet',
     'devis.customize':'Document customization', 'devis.societename':'Company name', 'devis.logo':'Logo',
@@ -3339,7 +3369,7 @@ const I18N = {
     'devis.devise':'Document currency', 'devis.devise.mad':'MAD — Moroccan Dirham', 'devis.devise.eur':'EUR — Euro', 'devis.devise.usd':'USD — US Dollar',
     'devis.lignes':'Quote lines', 'devis.addline':'Add a line', 'devis.fromcatalogue':'From catalog (optional)',
     'devis.freeline':'— Free line / not in catalog —', 'devis.designation':'Description', 'ph.designation':'Product or service name',
-    'devis.qte':'Quantity', 'devis.pu':'Unit price (MAD)', 'devis.addline.btn':'Add line',
+    'devis.qte':'Quantity', 'devis.pu':'Unit price ({cur})', 'devis.addline.btn':'Add line',
     'devis.noitems':'No lines — add products from the calculation modules.', 'devis.clear':'Clear quote',
     'doc.hist.title':'Saved quotes', 'doc.hist.cpstitle':'Saved spec sheets',
     'doc.hist.savedevis':'Save this quote', 'doc.hist.savecps':'Save this spec sheet',
@@ -3348,7 +3378,7 @@ const I18N = {
     'doc.hist.confirmdel':'Permanently delete this saved document?',
     'calc.hist.title.etude':'Saved studies', 'calc.hist.title.entretien':'Saved maintenance checks',
     'calc.hist.title.hydraulique':'Saved hydraulic calculations', 'calc.hist.title.sterilisation':'Saved sterilisation calculations',
-    'calc.hist.repere':'Label', 'calc.hist.repere.ph':'e.g. Villa Amine Tazi',
+    'calc.hist.repere':'Label', 'calc.hist.repere.ph':'e.g. Smith residence',
     'calc.hist.save':'Save this calculation', 'calc.hist.empty':'No saved calculations.',
     'calc.hist.confirmopen':'Load this saved calculation? The module\'s current values will be replaced.',
     'calc.validate':'Validate & calculate', 'calc.revalidate':'Re-validate (new calculation)',
@@ -3365,7 +3395,7 @@ const I18N = {
     'devis.signdate':'Date and signature', 'devis.signcompany':'Stamp and signature', 'devis.printbtn':'Print / Export to PDF',
     'default.societe':'Your company',
     'cps.projectinfo':'Project information', 'cps.typeprojet':'Project type', 'cps.delai':'Overall execution time (weeks)',
-    'cps.numero':'Spec No.', 'cps.adresse':'Site address', 'ph.adresse':'E.g. Al Manar subdivision, Casablanca',
+    'cps.numero':'Spec No.', 'cps.adresse':'Site address', 'ph.adresse':'E.g. 12 Palm Street, Springfield',
     'cps.type.construction':'New construction', 'cps.type.renovation':'Renovation', 'cps.type.misesauxnormes':'Code compliance upgrade',
     'cps.garanties':'Warranties offered', 'cps.garantie.structure':'Structure (years)', 'cps.garantie.etancheite':'Waterproofing (years)',
     'cps.garantie.equipements':'Equipment (years)', 'cps.normes':'Standards and regulations',
@@ -3509,7 +3539,7 @@ const I18N = {
     'account.identity.title':'Company identity', 'account.identity.sub':'This appears in the footer of your quotes and specs.',
     'account.identity.saved':'Identity saved. Your documents are up to date.',
     'account.identity.name':'Company name', 'account.identity.tel':'Phone', 'account.identity.ice':'Tax ID (ICE)',
-    'account.identity.adresse':'Address', 'account.identity.adresse.ph':'e.g. 14 Av. Mohammed V, Marrakech',
+    'account.identity.adresse':'Address', 'account.identity.adresse.ph':'e.g. 850 Main Street, Springfield',
     'account.identity.preview':'Document footer preview',
     'account.password.title':'Password', 'account.password.saved':'Password updated.',
     'account.password.current':'Current password', 'account.password.new':'New password', 'account.password.confirm':'Confirm new password',
@@ -3585,7 +3615,7 @@ const I18N = {
     'page.particulier.cps.t':'دفتر شروطي', 'page.particulier.cps.s':'دفتر الشروط الخاصة بمشروعك',
     'status.actif':'نشط', 'status.prospect':'عميل محتمل', 'status.inactif':'غير نشط', 'status.terminé':'منتهٍ', 'status.en attente':'قيد الانتظار', 'status.suspendu':'موقوف', 'status.indépendant':'مستقل', 'status.invité':'مدعو', 'status.offline':'غير متصل',
     'th.societe':'الشركة', 'th.ville':'المدينة', 'th.plan':'الباقة', 'th.clients':'العملاء', 'th.statut':'الحالة', 'th.inscription':'تاريخ التسجيل',
-    'th.nom':'الاسم', 'th.rattache':'مرتبط بـ', 'th.volume':'حجم المسبح', 'th.date':'التاريخ', 'th.note':'ملاحظة', 'th.acces':'الوصول',
+    'ph.client.email':'client@example.com', 'th.nom':'الاسم', 'th.rattache':'مرتبط بـ', 'th.volume':'حجم المسبح', 'th.date':'التاريخ', 'th.note':'ملاحظة', 'th.acces':'الوصول',
     'btn.suspend':'إيقاف', 'btn.reactivate':'إعادة تفعيل', 'btn.validate':'الموافقة',
     'admin.ov.kpi.business':'حسابات الشركات', 'admin.ov.kpi.actifs':'نشطة',
     'admin.ov.kpi.particuliers':'حسابات الأفراد', 'admin.ov.kpi.particuliers.sub':'جميع الفضاءات مجتمعة',
@@ -3657,7 +3687,7 @@ const I18N = {
     'pay.aucun':'غير مفوتر', 'pay.aucun.short':'لا شيء', 'pay.non':'غير مدفوع', 'pay.partiel':'جزئي', 'pay.paye':'مدفوع',
     'client.phone':'الهاتف', 'client.email':'البريد الإلكتروني', 'client.adresse':'عنوان الورش', 'client.adresse.ph':'مثال: تجزئة المنار، مراكش', 'optional':'(اختياري)', 'client.desc':'وصف العميل',
     'client.desc.ph':'سياق المشروع، نوع الحوض، الوصول إلى الورش، تفضيلات العميل…',
-    'client.pay.title':'الدفع', 'client.pay.montantpaye':'المبلغ المدفوع (درهم)', 'client.pay.montanttotal':'المبلغ الإجمالي (درهم)',
+    'client.pay.title':'الدفع', 'client.pay.montantpaye':'المبلغ المدفوع ({cur})', 'client.pay.montanttotal':'المبلغ الإجمالي ({cur})',
     'client.pay.reste':'المتبقي: {n}', 'client.pay.recap':'تم تحصيل {paye} من أصل {total}',
     'client.tasks.title':'المراحل المنجزة', 'client.tasks.add':'إضافة مرحلة',
     'client.tasks.ph':'مثال: زيارة تقنية، إرسال عرض السعر، تركيب المرشح…',
@@ -3729,7 +3759,7 @@ const I18N = {
     'catalogue.nocat':'لا توجد فئة حتى الآن.', 'catalogue.newcat.ph':'فئة جديدة (مثال: الروبوتات)', 'catalogue.addcat':'إضافة',
     'catalogue.readonly':'يُدار هذا الكتالوج من طرف باقة Business. باقتك تتيح لك الاطلاع عليه فقط.',
     'catalogue.newproduct':'منتج جديد', 'catalogue.productname':'اسم المنتج', 'ph.productname':'مثال: صمام 6 اتجاهات',
-    'catalogue.category':'الفئة', 'catalogue.unit':'الوحدة', 'ph.unit':'وحدة، كغ، م، كيس…', 'catalogue.price':'السعر (درهم)',
+    'catalogue.category':'الفئة', 'catalogue.unit':'الوحدة', 'ph.unit':'وحدة، كغ، م، كيس…', 'catalogue.price':'السعر ({cur})',
     'catalogue.addtocatalogue':'إضافة إلى الكتالوج', 'catalogue.createcatfirst':'أنشئ فئة أعلاه أولاً.',
     'export.csv':'تصدير (CSV)',
     'catalogue.allproducts':'كل المنتجات',
@@ -3756,7 +3786,7 @@ const I18N = {
     'catalogue.fiche.quota':'تخزين المتصفح ممتلئ — تعذّر حفظ هذه البطاقة. احذف بطاقات تقنية أخرى أو استخدم ملف PDF أصغر.',
     'confirm.deletefiche':'حذف البطاقة التقنية للمنتج «{nom}»؟',
     'confirm.deleteproduct':'حذف «{nom}» من الكتالوج المشترك؟ هذا الإجراء فوري ويؤثر على جميع الحسابات التي تستخدم هذا الكتالوج.',
-    'th.produit':'المنتج', 'th.categorie':'الفئة', 'th.prix':'السعر (درهم)', 'th.qte':'الكمية', 'th.pu':'سعر الوحدة (درهم)', 'th.total':'المجموع',
+    'th.produit':'المنتج', 'th.categorie':'الفئة', 'th.prix':'السعر ({cur})', 'th.qte':'الكمية', 'th.pu':'سعر الوحدة ({cur})', 'th.total':'المجموع',
     'th.periode':'الفترة', 'th.montant':'المبلغ', 'th.message':'الرسالة', 'th.chlore':'الكلور (مغ/ل)',
     'devis.tab.devis':'عرض السعر', 'devis.tab.cps':'دفتر الشروط الخاصة (CPS)',
     'devis.customize':'تخصيص الوثيقة', 'devis.societename':'اسم الشركة', 'devis.logo':'الشعار',
@@ -3772,7 +3802,7 @@ const I18N = {
     'devis.devise':'عملة الوثيقة', 'devis.devise.mad':'درهم مغربي — MAD', 'devis.devise.eur':'يورو — EUR', 'devis.devise.usd':'دولار أمريكي — USD',
     'devis.lignes':'بنود عرض السعر', 'devis.addline':'إضافة بند', 'devis.fromcatalogue':'من الكتالوج (اختياري)',
     'devis.freeline':'— بند حر / خارج الكتالوج —', 'devis.designation':'الوصف', 'ph.designation':'اسم المنتج أو الخدمة',
-    'devis.qte':'الكمية', 'devis.pu':'سعر الوحدة (درهم)', 'devis.addline.btn':'إضافة البند',
+    'devis.qte':'الكمية', 'devis.pu':'سعر الوحدة ({cur})', 'devis.addline.btn':'إضافة البند',
     'devis.noitems':'لا توجد بنود — أضف منتجات من وحدات الحساب.', 'devis.clear':'إفراغ عرض السعر',
     'doc.hist.title':'عروض الأسعار المحفوظة', 'doc.hist.cpstitle':'كراسات الشروط المحفوظة',
     'doc.hist.savedevis':'حفظ هذا العرض', 'doc.hist.savecps':'حفظ هذه الكراسة',
@@ -5868,7 +5898,7 @@ function viewBusinessClients(){
         <div class="field"><label>${t('biz.clients.fullname')}</label><input class="input" id="nc-nom" placeholder="${t('ph.clientname')}"></div>
         <div class="input-row">
           <div class="field"><label>${t('client.phone')}</label><input class="input" id="nc-tel" type="tel" placeholder="${t('ph.phone')}"></div>
-          <div class="field"><label>${t('client.email')} <span style="font-weight:400;color:var(--text-faint);">${t('optional')}</span></label><input class="input" id="nc-email" type="email" placeholder="client@exemple.ma"></div>
+          <div class="field"><label>${t('client.email')} <span style="font-weight:400;color:var(--text-faint);">${t('optional')}</span></label><input class="input" id="nc-email" type="email" placeholder="${t('ph.client.email')}"></div>
         </div>
         <div class="input-row">
           <div class="field"><label>${t('th.ville')}</label><input class="input" id="nc-ville" placeholder="${t('ph.city')}"></div>
@@ -5897,7 +5927,7 @@ function viewClientDetail(p){
       <div class="field"><label>${t('client.phone')}</label>
         <input class="input cd-text" data-id="${p.id}" data-k="telephone" type="tel" value="${esc(p.telephone||'')}" placeholder="${t('ph.phone')}"></div>
       <div class="field"><label>${t('client.email')}</label>
-        <input class="input cd-text" data-id="${p.id}" data-k="email" type="email" value="${esc(p.email||'')}" placeholder="client@exemple.ma"></div>
+        <input class="input cd-text" data-id="${p.id}" data-k="email" type="email" value="${esc(p.email||'')}" placeholder="${t('ph.client.email')}"></div>
       <div class="field"><label>${t('th.ville')}</label>
         <input class="input cd-text" data-id="${p.id}" data-k="ville" value="${esc(p.ville||'')}"></div>
     </div>
@@ -5916,12 +5946,12 @@ function viewClientDetail(p){
       ${['aucun','non','partiel','paye'].map(v=>`<button class="${p.paiement===v?'active':''}" data-action="cd-paiement" data-id="${p.id}" data-v="${v}">${v==='aucun'? t('pay.aucun.short') : t('pay.'+v)}</button>`).join('')}
     </div>
     <div class="grid grid-2" style="margin-top:12px;">
-      <div class="field"><label>${t('client.pay.montantpaye')}</label>
-        <input class="input cd-text" data-id="${p.id}" data-k="montantPaye" type="text" inputmode="decimal" value="${p.montantPaye||0}"></div>
-      <div class="field"><label>${t('client.pay.montanttotal')}</label>
-        <input class="input cd-text" data-id="${p.id}" data-k="montantTotal" type="text" inputmode="decimal" value="${p.montantTotal||0}"></div>
+      <div class="field"><label>${tc('client.pay.montantpaye')}</label>
+        <input class="input cd-text" data-id="${p.id}" data-k="montantPaye" type="text" inputmode="decimal" value="${toDisp(p.montantPaye||0)}"></div>
+      <div class="field"><label>${tc('client.pay.montanttotal')}</label>
+        <input class="input cd-text" data-id="${p.id}" data-k="montantTotal" type="text" inputmode="decimal" value="${toDisp(p.montantTotal||0)}"></div>
     </div>
-    ${(parseFloat(p.montantTotal)||0)>0? (()=>{ const warn = reste>0 && p.paiement!=='paye'; return `<div class="callout ${warn?'warn':'ok'}" style="margin-top:10px;">${ic(warn?'i-info':'i-check')}<div>${warn? tf('client.pay.reste',{n:fmtMoney(reste)})+' · ' : ''}${tf('client.pay.recap',{paye:fmtMoney(parseFloat(p.montantPaye)||0), total:fmtMoney(parseFloat(p.montantTotal)||0)})}</div></div>`; })():''}
+    ${(parseFloat(p.montantTotal)||0)>0? (()=>{ const warn = reste>0 && p.paiement!=='paye'; return `<div class="callout ${warn?'warn':'ok'}" style="margin-top:10px;">${ic(warn?'i-info':'i-check')}<div>${warn? tf('client.pay.reste',{n:fmtMoney(toDisp(reste), dispCur())})+' · ' : ''}${tf('client.pay.recap',{paye:fmtMoney(toDisp(p.montantPaye), dispCur()), total:fmtMoney(toDisp(p.montantTotal), dispCur())})}</div></div>`; })():''}
 
     <div class="divider"></div>
     <div class="card-title" style="margin-bottom:10px;">${t('client.tasks.title')} <span class="badge neutral">${tf('client.tasks.progress',{done, total:p.taches.length})}</span></div>
@@ -5991,7 +6021,7 @@ function bindBusinessClients(){
   $$('.cd-text').forEach(inp=> inp.addEventListener('change', ()=>{
     const p = ownClient(inp.dataset.id); if(!p) return;
     const k = inp.dataset.k;
-    if(k==='montantPaye' || k==='montantTotal') p[k] = parseFloat(inp.value)||0;
+    if(k==='montantPaye' || k==='montantTotal') p[k] = fromDisp(inp.value);
     else if(k==='ville') p.ville = inp.value.trim()||'—';
     else if(k==='nom'){ const v = inp.value.trim(); if(!v){ inp.value = p.nom; return; } p.nom = v; }
     else p[k] = inp.value;
@@ -6440,7 +6470,7 @@ function viewCatalogue(){
         <div class="field"><label>${t('catalogue.unit')}</label><input class="input" id="np-unite" placeholder="${t('ph.unit')}" value="u"></div>
       </div>
       <div class="input-row" style="margin-top:12px;">
-        <div class="field" style="max-width:200px;"><label>${t('catalogue.price')}</label><input class="input" id="np-prix" type="text" inputmode="decimal" step="0.01" placeholder="0"></div>
+        <div class="field" style="max-width:200px;"><label>${tc('catalogue.price')}</label><input class="input" id="np-prix" type="text" inputmode="decimal" step="0.01" placeholder="0"></div>
       </div>
       <div class="field" style="margin-top:12px;"><label>${t('catalogue.description')}</label><textarea class="input" id="np-desc" rows="2" placeholder="${t('catalogue.description.ph')}"></textarea></div>
       <button class="btn btn-primary" style="margin-top:14px;" data-action="save-product" ${STATE.categories.length?'':'disabled'}>${ic('i-check')} ${t('catalogue.addtocatalogue')}</button>
@@ -6467,13 +6497,13 @@ function viewCatalogue(){
             <td><input class="input cat-nom" style="min-width:190px;padding:5px 8px;" data-id="${c.id}" value="${esc(c.nom)}" ${rowW(c)?'':'readonly'}></td>
             <td><select class="input cat-cat" style="padding:5px 8px;min-width:120px;" data-id="${c.id}" ${rowW(c)?'':'disabled'}>${STATE.categories.map(cc=>`<option value="${esc(cc)}" ${cc===c.cat?'selected':''}>${esc(cc)}</option>`).join('')}</select></td>
             <td><input class="input cat-unite" style="width:76px;padding:5px 8px;" data-id="${c.id}" value="${esc(c.unite)}" ${rowW(c)?'':'readonly'}></td>
-            <td class="num"><input class="input cat-price mono" style="width:100px;text-align:end;padding:5px 8px;" data-id="${c.id}" type="text" inputmode="decimal" value="${c.prix}" ${rowW(c)?'':'readonly'}></td>
+            <td class="num"><input class="input cat-price mono" style="width:100px;text-align:end;padding:5px 8px;" data-id="${c.id}" type="text" inputmode="decimal" value="${toDisp(c.prix)}" ${rowW(c)?'':'readonly'}></td>
             <td style="text-align:end;white-space:nowrap;">
               <button class="btn btn-sm ${c.id===STATE.catalogueDetailId?'btn-primary':'btn-ghost'}" data-action="cat-details" data-id="${c.id}">${ic('i-file')} ${t('catalogue.details')}${(c.fiche||c.description)?' <span style="opacity:.65;">•</span>':''}</button>
               ${rowW(c)? `<button class="btn btn-sm btn-ghost" data-action="delete-product" data-id="${c.id}" title="${t('catalogue.remove.tooltip')}" style="color:var(--danger);">${ic('i-trash')}</button>` : ''}
             </td>
           </tr>`;
-      const thead = `<thead><tr><th>${t('th.produit')}</th><th>${t('th.categorie')}</th><th>${t('catalogue.unit')}</th><th class="num">${t('th.prix')}</th><th></th></tr></thead>`;
+      const thead = `<thead><tr><th>${t('th.produit')}</th><th>${t('th.categorie')}</th><th>${t('catalogue.unit')}</th><th class="num">${tc('th.prix')}</th><th></th></tr></thead>`;
       const openIdx = rows.findIndex(c=>c.id===STATE.catalogueDetailId);
       const header = `<div class="card-sub" style="margin:18px 0 6px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${esc(cat)}</div>`;
       if(openIdx<0) return `${header}<div class="table-wrap"><table>${thead}<tbody>${rows.map(catRow).join('')}</tbody></table></div>`;
@@ -6568,7 +6598,7 @@ function bindCatalogue(){
     render();
   }));
   if(!canWrite) return; // read-only for plans without catalogue write access — no editing controls to bind
-  $$('.cat-price').forEach(inp=> inp.addEventListener('change', ()=>{ const c=STATE.catalogue.find(c=>c.id===inp.dataset.id); if(c){ c.prix=parseFloat(inp.value)||0; saveState(); } }));
+  $$('.cat-price').forEach(inp=> inp.addEventListener('change', ()=>{ const c=STATE.catalogue.find(c=>c.id===inp.dataset.id); if(c){ c.prix=fromDisp(inp.value); saveState(); } }));
   $$('.cat-nom').forEach(inp=> inp.addEventListener('change', ()=>{ const c=STATE.catalogue.find(c=>c.id===inp.dataset.id); if(c && inp.value.trim()){ c.nom=inp.value.trim(); saveState(); render(); } }));
   $$('.cat-unite').forEach(inp=> inp.addEventListener('change', ()=>{ const c=STATE.catalogue.find(c=>c.id===inp.dataset.id); if(c && inp.value.trim()){ c.unite=inp.value.trim(); saveState(); } }));
   $$('.cat-cat').forEach(sel=> sel.addEventListener('change', ()=>{ const c=STATE.catalogue.find(c=>c.id===sel.dataset.id); if(c){ c.cat=sel.value; saveState(); render(); } }));
@@ -6579,7 +6609,7 @@ function bindCatalogue(){
     const nom = $('#np-nom').value.trim(); if(!nom) return;
     const catSel = $('#np-cat'); const cat = catSel.value; if(!cat) return;
     const unite = $('#np-unite').value.trim() || 'u';
-    const prix = parseFloat($('#np-prix').value)||0;
+    const prix = fromDisp($('#np-prix').value);
     const description = ($('#np-desc').value||'').trim();
     STATE.catalogue.push({id:uid(), nom, cat, unite, prix, description});
     saveState(); render();
@@ -6731,8 +6761,8 @@ function viewBoutique(){
           <input type="checkbox" class="bq-vis" data-id="${c.id}" ${cfg?'checked':''}>
           <span class="nm" style="min-width:0;overflow-wrap:anywhere;">${esc(c.nom)}</span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <input class="qt bq-prix" data-id="${c.id}" type="text" inputmode="decimal" value="${cfg && cfg.prix!=null? cfg.prix : ''}" placeholder="${c.prix}" ${cfg?'':'disabled'} style="width:84px;">
-            <span class="un">MAD</span>
+            <input class="qt bq-prix" data-id="${c.id}" type="text" inputmode="decimal" value="${cfg && cfg.prix!=null? toDisp(cfg.prix) : ''}" placeholder="${toDisp(c.prix)}" ${cfg?'':'disabled'} style="width:84px;">
+            <span class="un">${dispCur()}</span>
           </span>
         </div>`;
       }).join('')}`).join('') : `<div class="empty">${ic('i-layers')}<div>${t('catalogue.empty')}</div></div>`}
@@ -6759,7 +6789,7 @@ function bindBoutique(){
   $$('.bq-prix').forEach(inp=> inp.addEventListener('change', ()=>{
     const cfg = s.produits[inp.dataset.id]; if(!cfg) return;
     const v = inp.value.trim();
-    cfg.prix = (v==='' || isNaN(parseFloat(v))) ? null : parseFloat(v);
+    cfg.prix = (v==='' || isNaN(parseFloat(v))) ? null : fromDisp(v);
     saveState();
   }));
   const prev = $('[data-action="boutique-preview"]'); if(prev) prev.addEventListener('click', ()=> openStorePreview(b));
@@ -6778,8 +6808,8 @@ function storeCartTotal(items){ return Object.entries(storeCart).reduce((s,[i,q]
 function storeOrderMessage(data, items){
   if(!storeCartCount()) return tf('store.order.msg',{titre:data.t||''});
   const lines = Object.entries(storeCart).filter(([,q])=>q>0)
-    .map(([i,q])=>{ const it=items[i]||{}; return `- ${q} x ${it.n} (${fmtMoney((it.x||0)*q)})`; }).join('\n');
-  return tf('store.order.cart.msg',{titre:data.t||'', lines, total:fmtMoney(storeCartTotal(items))});
+    .map(([i,q])=>{ const it=items[i]||{}; return `- ${q} x ${it.n} (${fmtMoney((it.x||0)*q, data.k||'MAD')})`; }).join('\n');
+  return tf('store.order.cart.msg',{titre:data.t||'', lines, total:fmtMoney(storeCartTotal(items), data.k||'MAD')});
 }
 function storeOrderLink(data, items){
   const msg = storeOrderMessage(data, items);
@@ -6825,14 +6855,14 @@ function renderPublicStore(data, focusInfo){
                     ${it.f? `<a class="btn btn-sm" href="${it.f.u}" target="_blank" rel="noopener" download="${esc(it.f.n)}" style="align-self:flex-start;">${ic('i-file')} ${t('store.fiche')}</a>`:''}
                   </div>`;
                 const head = `<span class="store-item-name">${esc(it.n||'')}${expandable?`<span class="chev">${ic('i-chevron-down')}</span>`:''}</span>
-                    <span class="store-item-price">${fmtMoney(it.x||0)}${unit}</span>`;
+                    <span class="store-item-price">${fmtMoney(it.x||0, data.k||'MAD')}${unit}</span>`;
                 const cart = `<div class="store-cart ${storeCart[idx]?'has':''}" data-cart-row="${idx}">
                     <span class="store-stepper">
                       <button type="button" data-cart="dec" data-i="${idx}" aria-label="−">−</button>
                       <span class="n" data-cart-qty="${idx}">${storeCart[idx]||0}</span>
                       <button type="button" data-cart="inc" data-i="${idx}" aria-label="+">＋</button>
                     </span>
-                    <span class="card-sub" data-cart-note="${idx}">${storeCart[idx]? fmtMoney((it.x||0)*storeCart[idx]) : t('store.cart.add')}</span>
+                    <span class="card-sub" data-cart-note="${idx}">${storeCart[idx]? fmtMoney((it.x||0)*storeCart[idx], data.k||'MAD') : t('store.cart.add')}</span>
                   </div>`;
                 return expandable
                   ? `<div class="store-item"><details><summary>${head}</summary>${body}</details>${cart}</div>`
@@ -6854,9 +6884,9 @@ function renderPublicStore(data, focusInfo){
     const n = storeCartCount(), total = storeCartTotal(items);
     $$('[data-cart-qty]').forEach(el=>{ const i=el.dataset.cartQty; el.textContent = storeCart[i]||0; });
     $$('[data-cart-row]').forEach(el=>{ const i=el.dataset.cartRow; el.classList.toggle('has', !!storeCart[i]); });
-    $$('[data-cart-note]').forEach(el=>{ const i=el.dataset.cartNote; el.textContent = storeCart[i]? fmtMoney((items[i].x||0)*storeCart[i]) : t('store.cart.add'); });
+    $$('[data-cart-note]').forEach(el=>{ const i=el.dataset.cartNote; el.textContent = storeCart[i]? fmtMoney((items[i].x||0)*storeCart[i], data.k||'MAD') : t('store.cart.add'); });
     const bar = $('#store-cart-bar');
-    if(bar){ bar.style.display = n? 'flex':'none'; bar.querySelector('.lbl').textContent = tf('store.cart.count',{n, total:fmtMoney(total)}); const bo=$('#store-cart-order'); if(bo) bo.href = storeOrderLink(data, items); }
+    if(bar){ bar.style.display = n? 'flex':'none'; bar.querySelector('.lbl').textContent = tf('store.cart.count',{n, total:fmtMoney(total, data.k||'MAD')}); const bo=$('#store-cart-order'); if(bo) bo.href = storeOrderLink(data, items); }
     const hero = $('#store-order-btn');
     if(hero){ hero.href = storeOrderLink(data, items); hero.querySelector('.t').textContent = n? tf('store.cart.order',{n}) : t('store.contact.wa'); }
   };
@@ -6950,7 +6980,7 @@ function autocompleteList(itemId, query){
   return `<div class="ac-list">${matches.map(c=>`
     <div class="ac-item" data-action="ac-pick" data-id="${itemId}" data-catid="${c.id}">
       <span class="ac-item-nom">${esc(c.nom)}</span>
-      <span class="ac-item-meta">${fmt(c.prix)} MAD/${esc(c.unite)}</span>
+      <span class="ac-item-meta">${fmt(toDisp(c.prix))} ${dispCur()}/${esc(c.unite)}</span>
     </div>`).join('')}</div>`;
 }
 // Branche la saisie + le clic sur les suggestions pour un tableau de lignes donné.
@@ -7100,22 +7130,22 @@ function renderDevisTab(){
           <div class="field"><label>${t('devis.fromcatalogue')}</label>
             <select class="input" id="al-catalogue">
               <option value="">${t('devis.freeline')}</option>
-              ${STATE.catalogue.map(c=>`<option value="${c.id}" data-nom="${esc(c.nom)}" data-prix="${c.prix}" data-unite="${esc(c.unite)}" data-key="${esc(c.key||'')}">${esc(c.nom)} (${fmt(c.prix)} MAD / ${esc(c.unite)})</option>`).join('')}
+              ${STATE.catalogue.map(c=>`<option value="${c.id}" data-nom="${esc(c.nom)}" data-prix="${toDisp(c.prix)}" data-unite="${esc(c.unite)}" data-key="${esc(c.key||'')}">${esc(c.nom)} (${fmt(toDisp(c.prix))} ${dispCur()} / ${esc(c.unite)})</option>`).join('')}
             </select>
           </div>
           <div class="input-row3" style="margin-top:10px;">
             <div class="field"><label>${t('devis.designation')}</label><input class="input" id="al-nom" placeholder="${t('ph.designation')}"></div>
             <div class="field"><label>${t('devis.qte')}</label><input class="input" id="al-qte" type="text" inputmode="decimal" step="0.01" value="1"></div>
-            <div class="field"><label>${t('devis.pu')}</label><input class="input" id="al-prix" type="text" inputmode="decimal" step="0.01" value="0"></div>
+            <div class="field"><label>${tc('devis.pu')}</label><input class="input" id="al-prix" type="text" inputmode="decimal" step="0.01" value="0"></div>
           </div>
           <button class="btn btn-primary btn-sm" style="margin-top:12px;" data-action="add-manual-line">${ic('i-check')} ${t('devis.addline.btn')}</button>
         </div>
         ${d.items.length? `<div class="table-wrap" style="margin-top:12px;">
-          <table><thead><tr><th>${t('th.produit')}</th><th class="num">${t('th.qte')}</th><th class="num">${t('th.pu')}</th><th class="num">${t('th.total')}</th><th></th></tr></thead>
+          <table><thead><tr><th>${t('th.produit')}</th><th class="num">${t('th.qte')}</th><th class="num">${tc('th.pu')}</th><th class="num">${t('th.total')}</th><th></th></tr></thead>
           <tbody>${d.items.map(it=>`
             <tr><td class="ac-wrap"><input class="input it-nom" data-id="${it.id}" type="text" value="${esc(it.nom)}" style="min-width:150px;width:100%;padding:5px 6px;" autocomplete="off">${autocompleteList(it.id, it.nom)}</td>
               <td class="num"><input class="input it-qte mono" data-id="${it.id}" type="text" inputmode="decimal" step="0.01" value="${it.qte}" style="width:70px;padding:5px 6px;text-align:end;"></td>
-              <td class="num"><input class="input it-prix mono" data-id="${it.id}" type="text" inputmode="decimal" value="${it.prix}" style="width:80px;padding:5px 6px;text-align:end;"></td>
+              <td class="num"><input class="input it-prix mono" data-id="${it.id}" type="text" inputmode="decimal" value="${(it._dispCur===dispCur() && it._disp!=null) ? esc(it._disp) : toDisp(it.prix)}" style="width:80px;padding:5px 6px;text-align:end;"></td>
               <td class="num mono">${fmt(lineTotal(it))}</td>
               <td style="text-align:end;"><button class="btn btn-sm btn-ghost" data-action="rm-item" data-id="${it.id}">${ic('i-x')}</button></td>
             </tr>`).join('')}
@@ -7184,7 +7214,7 @@ function renderDevisTab(){
 // une liste modifiée (≠ défauts de toutes les langues) n'est jamais touchée.
 const CPS_DEFAULTS = {
   fr:{ phasageSteps: SEED.cpsForm.phasage.split('\n'),
-       receptionList: SEED.cpsForm.receptionList, exclusionsList: SEED.cpsForm.exclusionsList },
+       receptionList: SEED.cpsForm.receptionList, exclusionsList: SEED.cpsForm.exclusionsList, normes: SEED.cpsForm.normes },
   en:{ phasageSteps:[
          'Site setup and excavation',
          'Structural works (pool shell)',
@@ -7201,7 +7231,8 @@ const CPS_DEFAULTS = {
          'Main electrical supply up to the distribution board',
          'Final connection to the drinking water network',
          'Landscaping and unspecified surroundings',
-         'Any work not explicitly mentioned in the attached technical schedule'] },
+         'Any work not explicitly mentioned in the attached technical schedule'],
+       normes: NORMES_I18N.en.slice(0, 3) },
   ar:{ phasageSteps:[
          'التحديد والحفر',
          'إنجاز الأشغال الكبرى (بنية المسبح)',
@@ -7218,11 +7249,12 @@ const CPS_DEFAULTS = {
          'التغذية الكهربائية العامة إلى غاية اللوحة الكهربائية',
          'الربط النهائي بشبكة الماء الصالح للشرب',
          'تهيئة المساحات الخضراء والمحيط غير المحدد',
-         'كل عمل غير مذكور صراحة في الجدول التقني المرفق'] },
+         'كل عمل غير مذكور صراحة في الجدول التقني المرفق'],
+       normes: NORMES_I18N.ar.slice(0, 3) },
 };
 function localizeCpsDefaults(cf){
   const lang = CPS_DEFAULTS[STATE.lang] ? STATE.lang : 'en';
-  ['phasageSteps','receptionList','exclusionsList'].forEach(k=>{
+  ['phasageSteps','receptionList','exclusionsList','normes'].forEach(k=>{
     const cur = JSON.stringify(cf[k]||[]);
     if(Object.keys(CPS_DEFAULTS).some(l=> l!==lang && JSON.stringify(CPS_DEFAULTS[l][k])===cur))
       cf[k] = CPS_DEFAULTS[lang][k].slice();
@@ -7276,7 +7308,7 @@ function renderCpsTab(role){
     <div class="card">
       <div class="card-title">${t('cps.normes')}</div>
       <div class="form-grid" style="margin-top:12px;">
-        ${NORMES_DISPONIBLES.map(n=>`<label class="checkline"><input type="checkbox" class="cps-norme" value="${esc(n)}" ${cf.normes.includes(n)?'checked':''}> ${esc(n)}</label>`).join('')}
+        ${normesDisponibles().map(n=>`<label class="checkline"><input type="checkbox" class="cps-norme" value="${esc(n)}" ${cf.normes.includes(n)?'checked':''}> ${esc(n)}</label>`).join('')}
       </div>
     </div>
   </div>
@@ -7449,7 +7481,7 @@ function bindDevisTab(){
   });
   $$('.it-nom').forEach(inp=> inp.addEventListener('input', ()=>{ const it=STATE.devisCourant.items.find(x=>x.id===inp.dataset.id); if(it){ it.nom=inp.value; itemAutocompleteId = inp.value.trim()? inp.dataset.id : null; saveState(); render(); } }));
   $$('.it-qte').forEach(inp=> inp.addEventListener('input', ()=>{ const it=STATE.devisCourant.items.find(x=>x.id===inp.dataset.id); if(it){ it.qte=inp.value; saveState(); render(); } }));
-  $$('.it-prix').forEach(inp=> inp.addEventListener('input', ()=>{ const it=STATE.devisCourant.items.find(x=>x.id===inp.dataset.id); if(it){ it.prix=inp.value; saveState(); render(); } }));
+  $$('.it-prix').forEach(inp=> inp.addEventListener('input', ()=>{ const it=STATE.devisCourant.items.find(x=>x.id===inp.dataset.id); if(it){ it._disp=inp.value; it._dispCur=dispCur(); it.prix=fromDisp(inp.value); saveState(); render(); } }));
   $$('[data-action="rm-item"]').forEach(b=> b.addEventListener('click', ()=>{ STATE.devisCourant.items = STATE.devisCourant.items.filter(x=>x.id!==b.dataset.id); saveState(); render(); }));
   const clearBtn = $('[data-action="clear-devis"]'); if(clearBtn) clearBtn.addEventListener('click', ()=>{ if(confirm(t('confirm.cleardevis'))){ STATE.devisCourant.items=[]; saveState(); render(); } });
   bindItemAutocomplete(STATE.devisCourant.items);
@@ -7464,7 +7496,7 @@ function bindDevisTab(){
   if(addLineBtn) addLineBtn.addEventListener('click', ()=>{
     const nom = $('#al-nom').value.trim(); if(!nom) return;
     const qte = parseFloat($('#al-qte').value)||0;
-    const prix = parseFloat($('#al-prix').value)||0;
+    const prix = fromDisp($('#al-prix').value);
     const opt = catalogueSelect.selectedOptions[0];
     const unite = (opt && opt.value) ? opt.dataset.unite : 'u';
     const key = (opt && opt.value) ? (opt.dataset.key||null) : null;
@@ -7575,22 +7607,22 @@ function viewParticulierDevis(){
           <div class="field"><label>${t('devis.fromcatalogue')}</label>
             <select class="input" id="al-catalogue">
               <option value="">${t('devis.freeline')}</option>
-              ${STATE.catalogue.map(c=>`<option value="${c.id}" data-nom="${esc(c.nom)}" data-prix="${c.prix}" data-unite="${esc(c.unite)}" data-key="${esc(c.key||'')}">${esc(c.nom)} (${fmt(c.prix)} MAD / ${esc(c.unite)})</option>`).join('')}
+              ${STATE.catalogue.map(c=>`<option value="${c.id}" data-nom="${esc(c.nom)}" data-prix="${toDisp(c.prix)}" data-unite="${esc(c.unite)}" data-key="${esc(c.key||'')}">${esc(c.nom)} (${fmt(toDisp(c.prix))} ${dispCur()} / ${esc(c.unite)})</option>`).join('')}
             </select>
           </div>
           <div class="input-row3" style="margin-top:10px;">
             <div class="field"><label>${t('devis.designation')}</label><input class="input" id="al-nom" placeholder="${t('ph.designation')}"></div>
             <div class="field"><label>${t('devis.qte')}</label><input class="input" id="al-qte" type="text" inputmode="decimal" step="0.01" value="1"></div>
-            <div class="field"><label>${t('devis.pu')}</label><input class="input" id="al-prix" type="text" inputmode="decimal" step="0.01" value="0"></div>
+            <div class="field"><label>${tc('devis.pu')}</label><input class="input" id="al-prix" type="text" inputmode="decimal" step="0.01" value="0"></div>
           </div>
           <button class="btn btn-primary btn-sm" style="margin-top:12px;" data-action="add-manual-line">${ic('i-check')} ${t('devis.addline.btn')}</button>
         </div>
         ${d.items.length? `<div class="table-wrap" style="margin-top:12px;">
-          <table><thead><tr><th>${t('th.produit')}</th><th class="num">${t('th.qte')}</th><th class="num">${t('th.pu')}</th><th class="num">${t('th.total')}</th><th></th></tr></thead>
+          <table><thead><tr><th>${t('th.produit')}</th><th class="num">${t('th.qte')}</th><th class="num">${tc('th.pu')}</th><th class="num">${t('th.total')}</th><th></th></tr></thead>
           <tbody>${d.items.map(it=>`
             <tr><td class="ac-wrap"><input class="input it-nom" data-id="${it.id}" type="text" value="${esc(it.nom)}" style="min-width:150px;width:100%;padding:5px 6px;" autocomplete="off">${autocompleteList(it.id, it.nom)}</td>
               <td class="num"><input class="input it-qte mono" data-id="${it.id}" type="text" inputmode="decimal" step="0.01" value="${it.qte}" style="width:70px;padding:5px 6px;text-align:end;"></td>
-              <td class="num"><input class="input it-prix mono" data-id="${it.id}" type="text" inputmode="decimal" value="${it.prix}" style="width:80px;padding:5px 6px;text-align:end;"></td>
+              <td class="num"><input class="input it-prix mono" data-id="${it.id}" type="text" inputmode="decimal" value="${(it._dispCur===dispCur() && it._disp!=null) ? esc(it._disp) : toDisp(it.prix)}" style="width:80px;padding:5px 6px;text-align:end;"></td>
               <td class="num mono">${fmt(lineTotal(it))}</td>
               <td style="text-align:end;"><button class="btn btn-sm btn-ghost" data-action="rm-item" data-id="${it.id}">${ic('i-x')}</button></td>
             </tr>`).join('')}
@@ -7651,7 +7683,7 @@ function bindParticulierDevis(){
   const d = STATE.particulierDevisCourant;
   $$('.it-nom').forEach(inp=> inp.addEventListener('input', ()=>{ const it=d.items.find(x=>x.id===inp.dataset.id); if(it){ it.nom=inp.value; itemAutocompleteId = inp.value.trim()? inp.dataset.id : null; saveState(); render(); } }));
   $$('.it-qte').forEach(inp=> inp.addEventListener('input', ()=>{ const it=d.items.find(x=>x.id===inp.dataset.id); if(it){ it.qte=inp.value; saveState(); render(); } }));
-  $$('.it-prix').forEach(inp=> inp.addEventListener('input', ()=>{ const it=d.items.find(x=>x.id===inp.dataset.id); if(it){ it.prix=inp.value; saveState(); render(); } }));
+  $$('.it-prix').forEach(inp=> inp.addEventListener('input', ()=>{ const it=d.items.find(x=>x.id===inp.dataset.id); if(it){ it._disp=inp.value; it._dispCur=dispCur(); it.prix=fromDisp(inp.value); saveState(); render(); } }));
   $$('[data-action="rm-item"]').forEach(b=> b.addEventListener('click', ()=>{ d.items = d.items.filter(x=>x.id!==b.dataset.id); saveState(); render(); }));
   const clearBtn = $('[data-action="clear-devis"]'); if(clearBtn) clearBtn.addEventListener('click', ()=>{ if(confirm(t('confirm.cleardevis'))){ d.items=[]; saveState(); render(); } });
   bindItemAutocomplete(d.items);
@@ -7665,7 +7697,7 @@ function bindParticulierDevis(){
   if(addLineBtn) addLineBtn.addEventListener('click', ()=>{
     const nom = $('#al-nom').value.trim(); if(!nom) return;
     const opt = catalogueSelect ? catalogueSelect.selectedOptions[0] : null;
-    d.items.push({id:uid(), key:(opt&&opt.value)? opt.dataset.key||null : null, nom, qte:parseFloat($('#al-qte').value)||1, unite:(opt&&opt.dataset.unite)||'u', prix:parseFloat($('#al-prix').value)||0});
+    d.items.push({id:uid(), key:(opt&&opt.value)? opt.dataset.key||null : null, nom, qte:parseFloat($('#al-qte').value)||1, unite:(opt&&opt.dataset.unite)||'u', prix:fromDisp($('#al-prix').value)});
     saveState(); render();
   });
   const printBtn = $('[data-action="print-doc"]');
