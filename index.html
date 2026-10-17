@@ -372,6 +372,11 @@ svg{width:16px;height:16px;flex-shrink:0;}
 .aq-pub .aq-toc a:hover{color:var(--aq-accent);border-color:var(--aq-accent);}
 .aq-pub .aq-doc-plan{border:1px solid var(--aq-line);border-radius:4px;padding:24px;margin-bottom:16px;background:var(--aq-kelp);}
 .aq-pub .aq-doc-plan h3{color:var(--aq-white);margin:0 0 4px;font-weight:400;}
+.aq-pub .aq-doc-tuts{margin:6px 0 18px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+.aq-pub .aq-doc-tuts .tut-card{background:var(--aq-kelp);border-color:var(--aq-line);color:var(--aq-white);}
+.aq-pub .aq-doc-tuts .tut-card:hover{border-color:var(--aq-accent);}
+.aq-pub .aq-doc-tuts .tut-name{font-size:13px;font-weight:400;}
+.aq-pub .aq-prose .aq-link svg,.aq-pub .aq-prose .aq-btn svg{width:13px;height:13px;vertical-align:-1px;fill:currentColor;}
 .aq-pub .aq-doc-plan .aq-doc-price{font-size:13px;color:var(--aq-accent);letter-spacing:0;text-transform:none;margin-bottom:14px;display:block;}
 
 /* footer */
@@ -4506,6 +4511,20 @@ function viewSignup(){
 }
 
 /* ---------------- Documentation (par formule) ---------------- */
+// Documentation: a grid of tutorial thumbnails, and one guide step with its video link.
+function docTutGrid(group){
+  return `<div class="tut-grid aq-doc-tuts">${TUTORIALS.filter(tu=>tu.group===group).map(tu=>`
+    <button class="tut-card" data-action="tut-open" data-tut="${tu.id}">
+      <span class="tut-thumb"><img src="tutorials/${tu.id}.jpg" alt="" loading="lazy"><span class="tut-play">${ic('i-play')}</span><span class="tut-len">${Math.floor(tu.sec/60)}:${String(tu.sec%60).padStart(2,'0')}</span></span>
+      <span class="tut-name">${esc(TUT_EN_TITLES[tu.id])}</span>
+    </button>`).join('')}</div>`;
+}
+function docStep(id, title, steps){
+  const tu = TUTORIALS.find(x=>x.id===id);
+  return `<h3>${esc(title)}</h3>
+    <ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol>
+    ${tu ? `<p><span class="aq-link" data-action="tut-open" data-tut="${id}">${ic('i-play')} Watch the ${esc(title)} tutorial (${Math.floor(tu.sec/60)}:${String(tu.sec%60).padStart(2,'0')})</span></p>` : ''}`;
+}
 function viewDocs(){
   const planBlock = (id, intro, bullets)=>{
     const p = STATE.plans[id]; if(!p) return '';
@@ -4527,13 +4546,17 @@ function viewDocs(){
       <div class="aq-hero-inner aq-reveal">
         <span class="aq-eyebrow">Documentation</span>
         <h1 style="font-size:clamp(2rem,4.4vw,3.2rem);">How to use AquaLC</h1>
-        <p>The general principle, then what each plan lets you do, step by step.</p>
+        <p>Short video tutorials, a step-by-step guide to every module, and what each plan includes.</p>
       </div>
     </section>
     <section class="aq-section" style="border-top:none;">
       <div class="aq-prose">
         <div class="aq-toc">
+          <a data-action="scroll-to" data-target="doc-videos">Video tutorials</a>
           <a data-action="scroll-to" data-target="doc-start">Principle</a>
+          <a data-action="scroll-to" data-target="doc-guide-business">Business guide</a>
+          <a data-action="scroll-to" data-target="doc-guide-owner">Pool owner guide</a>
+          <a data-action="scroll-to" data-target="doc-plans">Plans</a>
           <a data-action="scroll-to" data-target="doc-cps">${esc(planLabel('cps'))}</a>
           <a data-action="scroll-to" data-target="doc-proprietaire">${esc(planLabel('proprietaire'))}</a>
           <a data-action="scroll-to" data-target="doc-installateur">${esc(planLabel('installateur'))}</a>
@@ -4541,18 +4564,48 @@ function viewDocs(){
           <a data-action="scroll-to" data-target="doc-business_pro">Business Pro</a>
         </div>
 
+        <h2 id="doc-videos">Video tutorials</h2>
+        <p>Every module has a short narrated video. Inside the app, the same videos open from the <strong>▶ Tutorial</strong> button at the top of each page and from the <strong>Video tutorials</strong> page in the sidebar.</p>
+        <p><button class="aq-btn aq-btn-primary" data-action="tut-open" data-tut="01" data-queue="${TUTORIALS.map(tu=>tu.id).join(',')}">${ic('i-play')} Watch the full tour (about 10 minutes)</button></p>
+        <h3>Business account</h3>
+        ${docTutGrid('business')}
+        <h3>Pool owner account</h3>
+        ${docTutGrid('particulier')}
+
         <h2 id="doc-start">The principle</h2>
         <p>AquaLC always starts from the <strong>pool's characteristics</strong> (shape, length, width, depths). From there, each module calculates part of the installation and passes its results to the next:</p>
         <ol>
-          <li><strong>My Pool / Study</strong>: volume, filtration flow rate, filter size, pump power, heat pump sizing.</li>
-          <li><strong>Hydraulics</strong>: pipe diameter, head loss, pump operating point.</li>
-          <li><strong>Water Analysis / Maintenance</strong>: pH, chlorine, TAC diagnostics and correction doses.</li>
-          <li><strong>Sterilization</strong>: pH/chlorine regulator and salt electrolyzer sized to the volume.</li>
-          <li><strong>Quotes &amp; spec sheets</strong>: the results become a priced quote or a PDF specification sheet.</li>
+          <li><strong>Study &amp; Sizing</strong>: volume, surface, flow rate, filter, pump, heat pump or heater, lighting, and power supply advice.</li>
+          <li><strong>Hydraulics</strong>: pipe diameter, total pipe length, valves, and every fitting, from the plant room distance and the filter size.</li>
+          <li><strong>Maintenance / Water analysis</strong>: diagnosis from pH, free chlorine, and water colour, with the exact dose of each product.</li>
+          <li><strong>Sterilization</strong>: pH and chlorine regulators, combined station, salt chlorinator and salt to add, sized to the volume.</li>
+          <li><strong>Quotes &amp; spec sheets</strong>: one click sends the selected products to a priced quote, and the studies fill in a technical specification sheet.</li>
         </ol>
-        <p>Every calculation gets <strong>validated</strong> (the "Validate and calculate" button): validation locks in the result, saves it with a date, and counts 1 unit against your monthly quota. Saved studies can be found again by keyword.</p>
+        <p>Every calculation gets <strong>validated</strong> (the "Validate and calculate" button): validation locks in the result, saves it with a date, and counts 1 unit against your monthly quota. Change any input afterwards and the results update instantly; saved studies can be found again by keyword.</p>
 
-        <h2>The plans in detail</h2>
+        <h2 id="doc-guide-business">Business account, step by step</h2>
+        ${docStep('01','Dashboard',['Your activity at a glance: active clients, quotes this month, current plan, and total pool volume tracked.','Quick access opens the four calculators; your latest clients are listed below.'])}
+        ${docStep('02','Clients',['Click <strong>New client</strong> and enter the name, phone, email, city, and pool volume, then save: the client file opens.','Add the site address and a project description, and set the status: active, prospect, inactive, or completed.','Track payments (none, unpaid, partial, paid): enter the amount received and the total to see the balance still due.','Check off completed steps and keep follow-up notes. Export the client list to CSV at any time.'])}
+        ${docStep('03','Study & Sizing',['Choose the shape (rectangular or round) and enter the dimensions, or type the volume directly.','Pick skimmer or infinity edge, the number of filters and pumps, the filtration time, power supply, and lights.','For heating, enter the current and target temperatures, the heating time, whether the pool is covered, then choose a heat pump or an electric heater.','Label the study and click <strong>Validate</strong>: you get the volume, surface, flow rate, filter, pump, heat pump, lighting, and power advice.','Review the products to propose (quantities are already calculated) and add the selection to your quote.'])}
+        ${docStep('04','Maintenance',['Enter the pool volume, the measured pH and free chlorine, and the water colour (clear, yellowish, green).','Validate to get the diagnosis and the exact dose of each product to add.','Add recommended maintenance equipment, then save the check to the client\'s history.'])}
+        ${docStep('05','Hydraulics',['Enter the distance between the pool and the plant room; the filter diameter comes from your study.','Validate to get the pipe diameter, total length, and number of valves. A heat pump circuit adds a check valve.','Every fitting is listed with its quantity, ready to add to your quote.'])}
+        ${docStep('06','Sterilization',['Enter the pool volume and validate.','AquaLC picks the range: compact models for small pools, two-way regulators for medium pools, professional models with flow sensors for large pools, and commercial control cabinets for public pools.','You also get the combined pH/chlorine station, the salt chlorinator, and the salt to add. Choose separate regulators or one device, then add them to your quote.'])}
+        ${docStep('07','Product catalog',['Browse your products by category and edit prices directly in the list.','Open <strong>Details</strong> to add a description and a PDF datasheet.','Add your own product (name, category, unit, price, description), import many at once by pasting from Excel or a CSV file, and export the catalog.'])}
+        ${docStep('08','Online store',['Switch the store on and fill in its name, WhatsApp number, phone, email, and introduction.','Pick the products to show and set store prices.','Share the link (copy it or send it on WhatsApp). Clients add products to their cart and send you the order on WhatsApp.'])}
+        ${docStep('09','Quotes',['Lines added from your studies are already in the quote. Set the client, quote number, date, and discount.','Add your letterhead (company, logo, header, footer), validity, VAT, currency, and payment terms.','Add lines from the catalog or free lines for labor and services; edit quantities and prices or remove lines.','The live preview groups lines by category with subtotals, discount, VAT, and total. Print or export to PDF, save to history, and reopen any time.'])}
+        ${docStep('10','Spec sheets',['Open the <strong>Spec sheet</strong> tab next to the quote and set the project type, execution time, number, site address, and client.','List the warranties and the standards that apply, lay out the work phasing, and define acceptance conditions and exclusions.','Write the purpose and your own articles: the technical specification fills itself in from your studies. Print or export to PDF and save it.'])}
+        ${docStep('11','Subscription',['See your current plan and status, and your usage this month for each document and calculator.','Compare the available plans and change plan at any time.'])}
+        ${docStep('12','Account settings',['Set the company identity shown on your quotes and spec sheets.','Change your login email or password, and switch between light and dark themes.'])}
+
+        <h2 id="doc-guide-owner">Pool owner account, step by step</h2>
+        ${docStep('13','My pool',['Describe your pool once (shape and dimensions; for a round pool, the diameter).','AquaLC estimates the volume and uses it in every tool.'])}
+        ${docStep('14','Water analysis',['Enter your test results: pH, free chlorine, and water colour.','See what to add and how much, plus the products and equipment you need.'])}
+        ${docStep('15','Test history',['Every water test is saved with its date, so you can follow your water over time.'])}
+        ${docStep('16','Project estimate',['Your pool details are pre-filled. Add heating and lights, then validate.','See the equipment you need and an estimated budget, and add it to your quote.'])}
+        ${docStep('17','Sterilization',['Get the right treatment equipment for your pool, sized to its exact volume.'])}
+        ${docStep('18','My quote',['Build your own quote from the catalog: pick products and set quantities.','Preview it, print it, and save it.'])}
+
+        <h2 id="doc-plans">The plans in detail</h2>
 
         ${planBlock('cps',
           'Pay-per-use, no subscription: you build a technical specification sheet and pay $40 when you generate the document.',
@@ -4835,6 +4888,8 @@ function bindPublicActions(){
   $$('[data-action="public-go"]').forEach(el=> el.addEventListener('click', ()=>{ loginError=null; signupError=null; backendSignupNotice=false; pendingConfirmEmail=null; confirmResendMsg=null; STATE.publicView = el.dataset.view; saveState(); render(); try{ window.scrollTo(0,0); }catch(e){} }));
   const navToggle = $('[data-action="aq-nav-toggle"]');
   if(navToggle) navToggle.addEventListener('click', ()=>{ const n = $('#aq-nav'); if(n) n.classList.toggle('open'); });
+  // Documentation : tutoriels vidéo
+  $$('[data-action="tut-open"]').forEach(el=> el.addEventListener('click', ()=> openTutorial(el.dataset.tut, (el.dataset.queue||'').split(',').filter(Boolean))));
   // Documentation : ancre interne
   $$('[data-action="scroll-to"]').forEach(el=> el.addEventListener('click', ()=>{
     const t = document.getElementById(el.dataset.target);
@@ -5274,7 +5329,8 @@ const TUTORIALS = [
   {id:'18', group:'particulier', view:'particulier.devis', nav:'nav.particulier.devis.self', sec:25, plan:'proprietaire'},
 ];
 const TUT_EN_TITLES = {'01':'Dashboard','02':'Clients','03':'Study & Sizing','04':'Maintenance','05':'Hydraulics','06':'Sterilization','07':'Product catalog','08':'Online store','09':'Quotes','10':'Spec sheets','11':'Subscription','12':'Account settings','13':'My pool','14':'Water analysis','15':'Test history','16':'Project estimate','17':'Sterilization','18':'My quote'};
-function tutTitle(tu){ const k = tu.nav, v = t(k); return (v && v!==k) ? v : TUT_EN_TITLES[tu.id]; }
+function tutTitle(tu){ if(!STATE.auth.loggedIn) return TUT_EN_TITLES[tu.id]; const k = tu.nav, v = t(k); return (v && v!==k) ? v : TUT_EN_TITLES[tu.id]; }
+function tutLabel(k){ return STATE.auth.loggedIn ? t(k) : ((I18N.en && I18N.en[k]) || t(k)); }
 function tutorialsForRole(role){
   const plan = (accountForRole(role)||{}).plan;
   return TUTORIALS.filter(tu=> tu.group===role && (!tu.plan || tu.plan===plan));
@@ -5302,10 +5358,10 @@ function openTutorial(id, queue){
   wrap.className = 'tut-modal'; wrap.id = 'tut-modal';
   wrap.innerHTML = `<div class="tut-box" role="dialog" aria-modal="true">
       <div class="tut-head"><div class="tut-title"></div>
-        <button class="btn btn-sm tut-next" style="display:none">${t('tut.next')}</button>
-        <button class="theme-toggle tut-x" title="${t('tut.close')}" aria-label="${t('tut.close')}">${ic('i-x')}</button></div>
+        <button class="btn btn-sm tut-next" style="display:none">${tutLabel('tut.next')}</button>
+        <button class="theme-toggle tut-x" title="${tutLabel('tut.close')}" aria-label="${tutLabel('tut.close')}">${ic('i-x')}</button></div>
       <video class="tut-video" controls playsinline preload="metadata"></video>
-      <div class="tut-foot">${t('tut.lang')}</div>
+      <div class="tut-foot">${tutLabel('tut.lang')}</div>
     </div>`;
   document.body.appendChild(wrap);
   const v = wrap.querySelector('video'), title = wrap.querySelector('.tut-title'), next = wrap.querySelector('.tut-next');
