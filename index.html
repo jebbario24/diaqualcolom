@@ -6926,7 +6926,7 @@ function renderDocHistory(kind, role){
     <thead><tr><th>${t('cps.numero')}</th><th>${t('devis.client')}</th><th>${t('devis.date')}</th>${isCps?'':`<th class="num">${t('devis.totalttc')}</th>`}<th></th></tr></thead>
     <tbody>${list.map(h=>`<tr>
       <td class="mono">${esc(h.numero)||'—'}</td><td>${esc(h.client)||'—'}</td><td class="mono">${esc(h.date)}</td>
-      ${isCps?'':`<td class="num mono">${fmtMoney(histTotalTTC(h), h.devise||'MAD')}</td>`}
+      ${isCps?'':`<td class="num mono">${fmtMoney(convertMAD(histTotalTTC(h), h.devise||'MAD'), h.devise||'MAD')}</td>`}
       <td style="text-align:end;white-space:nowrap;">
         <button class="btn btn-sm btn-ghost" data-action="open-doc-hist" data-id="${h.id}">${ic('i-file')} ${t('doc.hist.open')}</button>
         <button class="btn btn-sm btn-ghost" data-action="del-doc-hist" data-id="${h.id}" title="${t('action.delete')}" style="color:var(--danger);">${ic('i-trash')}</button>
