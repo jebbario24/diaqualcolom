@@ -762,6 +762,54 @@ const NORMES_DISPONIBLES = [
   'NF EN 60335 — Sécurité des appareils électrodomestiques (pompes, PAC)',
   'Règlement sanitaire — Traitement et qualité de l\'eau',
 ];
+// Libellés techniques écrits en français dans les tables de dimensionnement (modèles de
+// régulateurs / électrolyseurs, phase électrique des pompes) : traduction à l'affichage.
+const TERMS = {
+  en:{
+    'Régulateur pH compact — mono-voie':'Compact pH regulator — single line',
+    'Régulateur pH — bi-voies':'pH regulator — two-way',
+    'Régulateur pH professionnel + sonde de débit':'Professional pH regulator + flow sensor',
+    'Armoire de régulation pH collectivité (redondante)':'Commercial pH control cabinet (redundant)',
+    'Régulateur Chlore compact — mono-voie':'Compact chlorine regulator — single line',
+    'Régulateur Chlore/Redox — bi-voies':'Chlorine/Redox regulator — two-way',
+    'Régulateur Chlore professionnel + sonde de débit':'Professional chlorine regulator + flow sensor',
+    'Armoire de régulation Chlore collectivité (redondante)':'Commercial chlorine control cabinet (redundant)',
+    'Régulateur pH/Chlore compact — station combinée':'Compact pH/chlorine regulator — combined station',
+    'Régulateur pH/Chlore — double pompe doseuse':'pH/chlorine regulator — dual dosing pump',
+    'Régulateur pH/Chlore professionnel + sondes de débit':'Professional pH/chlorine regulator + flow sensors',
+    'Armoire de régulation pH/Chlore collectivité (redondante)':'Commercial pH/chlorine control cabinet (redundant)',
+    'Électrolyseur au sel — compact':'Salt chlorinator — compact', 'Électrolyseur au sel — standard':'Salt chlorinator — standard',
+    'Électrolyseur au sel — pro':'Salt chlorinator — pro', 'Électrolyseur au sel — collectivité':'Salt chlorinator — commercial',
+    'Mono':'Single-phase', 'Mono/Tri':'Single/three-phase', 'Tri conseillé':'Three-phase recommended', 'Tri':'Three-phase',
+    'sur mesure':'custom', 'par voie':'per line', 'jusqu\'à':'up to',
+  },
+  ar:{
+    'Régulateur pH compact — mono-voie':'منظم pH مدمج — خط واحد',
+    'Régulateur pH — bi-voies':'منظم pH — خطان',
+    'Régulateur pH professionnel + sonde de débit':'منظم pH احترافي + مستشعر تدفق',
+    'Armoire de régulation pH collectivité (redondante)':'خزانة تنظيم pH للمرافق الجماعية (احتياطية)',
+    'Régulateur Chlore compact — mono-voie':'منظم كلور مدمج — خط واحد',
+    'Régulateur Chlore/Redox — bi-voies':'منظم كلور/Redox — خطان',
+    'Régulateur Chlore professionnel + sonde de débit':'منظم كلور احترافي + مستشعر تدفق',
+    'Armoire de régulation Chlore collectivité (redondante)':'خزانة تنظيم الكلور للمرافق الجماعية (احتياطية)',
+    'Régulateur pH/Chlore compact — station combinée':'منظم pH/كلور مدمج — محطة مركّبة',
+    'Régulateur pH/Chlore — double pompe doseuse':'منظم pH/كلور — مضختا جرعات',
+    'Régulateur pH/Chlore professionnel + sondes de débit':'منظم pH/كلور احترافي + مستشعرات تدفق',
+    'Armoire de régulation pH/Chlore collectivité (redondante)':'خزانة تنظيم pH/كلور للمرافق الجماعية (احتياطية)',
+    'Électrolyseur au sel — compact':'جهاز تحليل الملح — مدمج', 'Électrolyseur au sel — standard':'جهاز تحليل الملح — قياسي',
+    'Électrolyseur au sel — pro':'جهاز تحليل الملح — احترافي', 'Électrolyseur au sel — collectivité':'جهاز تحليل الملح — للمرافق الجماعية',
+    'Mono':'أحادي الطور', 'Mono/Tri':'أحادي/ثلاثي الطور', 'Tri conseillé':'ثلاثي الطور موصى به', 'Tri':'ثلاثي الطور',
+    'sur mesure':'حسب الطلب', 'par voie':'لكل خط', 'jusqu\'à':'حتى',
+  },
+};
+// Traduit un libellé entier, ou les fragments connus (« 3 – 5 L/h par voie », « jusqu'à 40 g/h »).
+function term(s){
+  const d = TERMS[STATE.lang]; if(!d || s==null) return s;
+  const str = String(s); if(d[str]) return d[str];
+  return str.replace('sur mesure', d['sur mesure']).replace('par voie', d['par voie']).replace('jusqu\'à', d['jusqu\'à']);
+}
+// Unité de puissance des pompes : CV en français, HP ailleurs.
+function hpUnit(){ return STATE.lang==='fr' ? 'CV' : 'HP'; }
 const TYPE_PROJET_LABEL_KEY = {construction:'cps.type.construction', renovation:'cps.type.renovation', mise_aux_normes:'cps.type.misesauxnormes'};
 function typeProjetLabel(k){ return t(TYPE_PROJET_LABEL_KEY[k]) || k; }
 const COURANT_CONSEIL_KEY = {
@@ -2224,6 +2272,7 @@ const PRODUCT_NAMES = {
     'collier-fixation':'Pipe clamp', 'clapet-anti-retour':'Check valve',
     'regulateur-ph':'pH regulator', 'regulateur-chlore':'Chlorine regulator', 'regulateur-ph-chlore':'pH/chlorine regulator',
     'electrolyseur-sel':'Salt chlorinator', 'sel-piscine':'Pool salt (25 kg bag)',
+    'tuyau-refoulement':'Return hose (m)', 'balai-aspirateur':'Manual pool vacuum',
   },
   ar:{
     'filtre':'مرشح رملي Ø{d}', 'gravier-filtrant':'حصى الكوارتز 3–5 مم (كيس 25 كغ)',
@@ -2239,8 +2288,11 @@ const PRODUCT_NAMES = {
     'collier-fixation':'مشبك تثبيت', 'clapet-anti-retour':'صمام عدم رجوع',
     'regulateur-ph':'منظم pH', 'regulateur-chlore':'منظم الكلور', 'regulateur-ph-chlore':'منظم pH/كلور',
     'electrolyseur-sel':'جهاز التحليل الكهربائي للملح', 'sel-piscine':'ملح المسبح (كيس 25 كغ)',
+    'tuyau-refoulement':'خرطوم الدفع (م)', 'balai-aspirateur':'مكنسة يدوية للمسبح',
   },
 };
+// Unité affichée : « sac » (sac de 25 kg) devient bag / كيس hors français.
+function unitName(u){ if(u!=='sac' || STATE.lang==='fr') return u; return STATE.lang==='ar' ? 'كيس' : 'bag'; }
 // Détail affiché à côté du nom (puissance pompe, PAC) : CV -> HP hors français.
 function productDetail(d){ return STATE.lang==='fr' ? d : String(d).replace(/\bCV\b/, 'HP').replace('kW therm.', 'kW thermal'); }
 function productName(p){
@@ -6067,7 +6119,7 @@ function viewEtude(role){
         </div>
         <div class="grid grid-2" style="margin-bottom:14px;">
           <div class="metric-tile"><div class="l">${t('etude.filtre')}${r.nbFiltres>1?` ×${r.nbFiltres}`:''}</div><div class="v">Ø${r.filtre.d}<span class="u">mm</span></div><div class="n">${tf('etude.filtre.media',{g:r.media.gravierSacs*r.nbFiltres, s:r.media.siliceSacs*r.nbFiltres})}${r.nbFiltres>1?` · ${fmt(r.qParFiltre,1)} m³/h ${t('etude.parunite')}`:''}</div></div>
-          <div class="metric-tile"><div class="l">${t('etude.pompe')}${r.nbPompes>1?` ×${r.nbPompes}`:''}</div><div class="v">${r.pompe.cv}<span class="u">CV</span></div><div class="n">${r.pompe.kw} kW — ${r.pompe.phase}${r.nbPompes>1?` · ${fmt(r.qParPompe,1)} m³/h ${t('etude.parunite')}`:''}</div></div>
+          <div class="metric-tile"><div class="l">${t('etude.pompe')}${r.nbPompes>1?` ×${r.nbPompes}`:''}</div><div class="v">${r.pompe.cv}<span class="u">${hpUnit()}</span></div><div class="n">${r.pompe.kw} kW — ${esc(term(r.pompe.phase))}${r.nbPompes>1?` · ${fmt(r.qParPompe,1)} m³/h ${t('etude.parunite')}`:''}</div></div>
         </div>
         <div class="grid grid-2" style="margin-bottom:14px;">
           <div class="metric-tile"><div class="l">${f.chauffage==='electrique'?t('etude.electrique'):t('etude.pacthermique')}</div><div class="v">${fmt(r.puissanceThermique,1)}<span class="u">kW</span></div>
@@ -6079,7 +6131,7 @@ function viewEtude(role){
 
         <div class="divider"></div>
         <div class="card-title" style="margin-bottom:8px;">${t('etude.produits')}</div>
-        ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}${p.detail?' <span style=\'color:var(--text-faint);font-weight:500\'>('+esc(productDetail(p.detail))+')</span>':''}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.1"><span class="un">${p.unite}</span></div>`).join('')}
+        ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}${p.detail?' <span style=\'color:var(--text-faint);font-weight:500\'>('+esc(productDetail(p.detail))+')</span>':''}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.1"><span class="un">${esc(unitName(p.unite))}</span></div>`).join('')}
 
         ${hasDevisQuota(role)
           ? `<button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>`
@@ -6107,7 +6159,7 @@ function viewEtude(role){
       <table class="quote-table"><tbody>
         <tr><td>${t('etude.filtre')}</td><td class="num">Ø${r.filtre.d} mm${r.nbFiltres>1?` × ${r.nbFiltres}`:''}</td></tr>
         <tr><td>${t('etude.filtre.medialabel')}</td><td class="num">${tf('etude.filtre.media',{g:r.media.gravierSacs*r.nbFiltres, s:r.media.siliceSacs*r.nbFiltres})}</td></tr>
-        <tr><td>${t('etude.pompe')}</td><td class="num">${r.pompe.cv} CV${r.nbPompes>1?` × ${r.nbPompes}`:''} — ${r.pompe.kw} kW — ${r.pompe.phase}</td></tr>
+        <tr><td>${t('etude.pompe')}</td><td class="num">${r.pompe.cv} ${hpUnit()}${r.nbPompes>1?` × ${r.nbPompes}`:''} — ${r.pompe.kw} kW — ${esc(term(r.pompe.phase))}</td></tr>
         <tr><td>${f.chauffage==='electrique'?t('etude.electrique'):t('etude.pac')}</td><td class="num">${fmt(r.puissanceThermique,1)} kW</td></tr>
         <tr><td>${t('etude.eclairage')}</td><td class="num">${tf('etude.eclairage.detail',{n:r.nbProjecteurs})} — ${fmt(r.eclairageKW*1000,0)} W</td></tr>
         <tr><td>${t('estimate.alim')}</td><td class="num">${esc(courantConseilLabel)}</td></tr>
@@ -6198,7 +6250,7 @@ function viewEntretien(role){
 
         <div class="divider"></div>
         <div class="card-title" style="margin-bottom:8px;">${t('entretien.produits')}</div>
-        ${r.produits.length? r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.01"><span class="un">${p.unite}</span></div>`).join('') : `<div class="card-sub">${t('entretien.noneneeded')}</div>`}
+        ${r.produits.length? r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="0.01"><span class="un">${esc(unitName(p.unite))}</span></div>`).join('') : `<div class="card-sub">${t('entretien.noneneeded')}</div>`}
         <div class="card-title" style="margin:14px 0 8px;">${t('entretien.materiel')}</div>
         ${r.materiel.map(m=>`<div class="chk-add"><input type="checkbox" class="devis-chk" data-nom="${esc(productName(m))}" data-unite="u" data-key="${esc(m.key||'')}"><span class="nm">${esc(productName(m))}</span><input class="qt devis-qte" data-nom="${esc(productName(m))}" type="text" inputmode="decimal" value="1" step="1"><span class="un">u</span></div>`).join('')}
 
@@ -6253,7 +6305,7 @@ function viewHydraulique(){
         <div class="metric-tile"><div class="l">${t('hydro.vannes')}</div><div class="v">${r.vannes}</div></div>
       </div>
       <div class="card-title" style="margin-bottom:8px;">${t('hydro.postes')}</div>
-      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
+      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" checked class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${esc(unitName(p.unite))}</span></div>`).join('')}
       <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>
       <div class="callout" style="margin-top:12px;">${ic('i-info')}<div>${t('hydro.callout')}</div></div>
     </div>`}
@@ -6290,28 +6342,28 @@ function viewSterilisation(role){
     ${!calcShown('sterilisation') ? calcResultPlaceholder('sterilisation') : `<div class="result-card">
       <div class="result-head"><div class="ic">${ic('i-flask')}</div><div><div class="card-title">${t('steril.config.title')}</div><div class="card-sub">${tf('steril.config.sub',{v:fmt(r.V,1)})}</div></div></div>
       <div class="metric-tile" style="margin-bottom:10px;">
-        <div class="l">${t('steril.regulateur.ph')}</div><div class="v" style="font-size:15px;">${r.regulateurPh.nom}</div>
-        <div class="n">${tf('steril.regulateur.ph.detail',{debit:r.regulateurPh.debit})}</div>
+        <div class="l">${t('steril.regulateur.ph')}</div><div class="v" style="font-size:15px;">${esc(term(r.regulateurPh.nom))}</div>
+        <div class="n">${tf('steril.regulateur.ph.detail',{debit:term(r.regulateurPh.debit)})}</div>
       </div>
       <div class="metric-tile" style="margin-bottom:10px;">
-        <div class="l">${t('steril.regulateur.cl')}</div><div class="v" style="font-size:15px;">${r.regulateurCl.nom}</div>
-        <div class="n">${tf('steril.regulateur.cl.detail',{debit:r.regulateurCl.debit})}</div>
+        <div class="l">${t('steril.regulateur.cl')}</div><div class="v" style="font-size:15px;">${esc(term(r.regulateurCl.nom))}</div>
+        <div class="n">${tf('steril.regulateur.cl.detail',{debit:term(r.regulateurCl.debit)})}</div>
       </div>
       <div class="metric-tile" style="margin-bottom:10px;">
         <div class="l">${t('steril.regulateur.phcl')} <span class="badge neutral" style="font-size:10px;">${t('steril.regulateur.phcl.tag')}</span></div>
-        <div class="v" style="font-size:15px;">${r.regulateurPhCl.nom}</div>
-        <div class="n">${tf('steril.regulateur.phcl.detail',{debit:r.regulateurPhCl.debit})}</div>
+        <div class="v" style="font-size:15px;">${esc(term(r.regulateurPhCl.nom))}</div>
+        <div class="n">${tf('steril.regulateur.phcl.detail',{debit:term(r.regulateurPhCl.debit)})}</div>
       </div>
       <div class="metric-tile" style="margin-bottom:10px;">
-        <div class="l">${t('steril.electrolyseur')}</div><div class="v" style="font-size:15px;">${r.electrolyseur.nom}</div>
-        <div class="n">${tf('steril.electrolyseur.detail',{g:r.prodGh, cap:r.electrolyseur.capacite})}</div>
+        <div class="l">${t('steril.electrolyseur')}</div><div class="v" style="font-size:15px;">${esc(term(r.electrolyseur.nom))}</div>
+        <div class="n">${tf('steril.electrolyseur.detail',{g:r.prodGh, cap:term(r.electrolyseur.capacite)})}</div>
       </div>
       <div class="grid grid-2" style="margin-bottom:10px;">
         <div class="metric-tile"><div class="l">${t('steril.sel')}</div><div class="v">${fmt(r.selKg)}<span class="u">kg</span></div></div>
         <div class="metric-tile"><div class="l">${t('steril.sacs')}</div><div class="v">${r.sacs}</div></div>
       </div>
       <div class="card-title" style="margin:10px 0 8px;">${t('hydro.postes')}</div>
-      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" ${p.checked===false?'':'checked'} class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${p.unite}</span></div>`).join('')}
+      ${r.produits.map(p=>`<div class="chk-add"><input type="checkbox" ${p.checked===false?'':'checked'} class="devis-chk" data-nom="${esc(productName(p))}" data-unite="${p.unite}" data-key="${esc(p.key||'')}"><span class="nm">${esc(productName(p))}</span><input class="qt devis-qte" data-nom="${esc(productName(p))}" type="text" inputmode="decimal" value="${p.qte}" step="1"><span class="un">${esc(unitName(p.unite))}</span></div>`).join('')}
       <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" data-action="add-to-devis">${ic('i-file')} ${t('etude.addtodevis')}</button>
     </div>`}
   </div>
@@ -7309,17 +7361,17 @@ function renderCpsTab(role){
         <tr><td>${t('estimate.surface')}</td><td class="num">${fmt(etude.S,1)} m²</td></tr>
         <tr><td>${t('etude.typebassin')}</td><td class="num">${etude.isDebordement?t('estimate.atype.debordement'):t('estimate.atype.skimmer')}</td></tr>
         <tr><td>${t('estimate.debit')}</td><td class="num">${tf('cps.s2.debit.value',{q:fmt(etude.qReq,1), d:etude.duree})}</td></tr>
-        <tr><td>${t('cps.s2.filtration')}</td><td class="num">${tf('cps.s2.filtration.value',{d:etude.filtre.d, cv:etude.pompe.cv, phase:etude.pompe.phase})}</td></tr>
+        <tr><td>${t('cps.s2.filtration')}</td><td class="num">${tf('cps.s2.filtration.value',{d:etude.filtre.d, cv:etude.pompe.cv, phase:term(etude.pompe.phase)})}</td></tr>
         <tr><td>${t('cps.s2.chauffage')}</td><td class="num">${etudeF.chauffage==='electrique'?t('etude.electrique'):t('etude.pac')} — ${fmt(etude.puissanceThermique,1)} kW</td></tr>
         <tr><td>${t('estimate.alim')}</td><td class="num">${t(COURANT_CONSEIL_KEY[etude.courantConseil]) || etude.courantConseil}</td></tr>
       </tbody>
     </table>
 
     <h3 class="cps-h">${t('cps.s3.title')}</h3>
-    <p class="cps-p"><b>${t('cps.s3.filtration.label')}</b> ${etude.produits.filter(p=>/Filtre|Sable|Pompe de filtration/.test(p.nom)).map(p=>`${fmt(p.qte,0)} ${p.unite} ${p.nom}`).join(', ')}.</p>
+    <p class="cps-p"><b>${t('cps.s3.filtration.label')}</b> ${etude.produits.filter(p=>/Filtre|Sable|Pompe de filtration/.test(p.nom)).map(p=>`${fmt(p.qte,0)} ${esc(unitName(p.unite))} ${esc(productName(p))}`).join(', ')}.</p>
     <p class="cps-p"><b>${t('cps.s3.hydraulique.label')}</b> ${tf('cps.s3.hydraulique.text',{d:hydro.diametreTuyau, total:hydro.tubeTotal, vannes:hydro.vannes, unions:hydro.unions, coudes:hydro.coudes, colliers:hydro.colliers, clapets: hydro.clapets? tf('cps.s3.hydraulique.clapets',{n:hydro.clapets}) : ''})}</p>
     <p class="cps-p"><b>${t('cps.s3.eclairage.label')}</b> ${etude.nbProjecteurs>0? tf('cps.s3.eclairage.yes',{n:etude.nbProjecteurs}) : t('cps.s3.eclairage.no')}</p>
-    <p class="cps-p"><b>${t('cps.s3.sterilisation.label')}</b> ${sterilisation.regulateurPh.nom}. ${sterilisation.regulateurCl.nom}. ${sterilisation.electrolyseur.nom} — ${t('cps.sel.label')} ${fmt(sterilisation.selKg)} kg</p>
+    <p class="cps-p"><b>${t('cps.s3.sterilisation.label')}</b> ${esc(term(sterilisation.regulateurPh.nom))}. ${esc(term(sterilisation.regulateurCl.nom))}. ${esc(term(sterilisation.electrolyseur.nom))} — ${t('cps.sel.label')} ${fmt(sterilisation.selKg)} kg</p>
 
     <h3 class="cps-h">${t('cps.s4.title')}</h3>
     <ul class="cps-ul">${cf.normes.map(n=>`<li>${esc(n)}</li>`).join('') || `<li>${t('cps.s4.none')}</li>`}</ul>
