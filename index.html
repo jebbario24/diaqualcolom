@@ -6,7 +6,7 @@
 <link rel="mask-icon" href="favicon.svg" color="#25d3bd">
 <meta name="theme-color" content="#04191d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <!-- ===================================================================
      BACKEND (Supabase) — Configuration
@@ -30,77 +30,97 @@ window.AQUA_PADDLE = {
 <style>
 /* ============ TOKENS ============ */
 :root{
-  /* Stripe-style ledger palette — see CLAUDE.md / design reference for tokens */
-  --bg:#f8fafd;
+  /* Workspace palette: deck-stone neutrals, one deep pool-water accent for data and selection. */
+  --bg:#f5f7f7;
   --surface:#ffffff;
-  --surface-2:#e5edf5;
-  --surface-3:#d3ddea;
-  --border:#e5edf5;
-  --text:#061b31;
-  --text-muted:#64748d;
-  --text-faint:#839bc8;
-  --accent:#533afd;
-  --accent-strong:#7389ff;
-  --accent-soft:#e8e9ff;
-  --accent-text:#533afd;
-  --success:#16a34a;
-  --success-soft:#ecfdf3;
-  --warning:#b45309;
-  --warning-soft:#fef3e2;
-  --danger:#dc2626;
-  --danger-soft:#fef2f2;
+  --surface-2:#f0f3f3;
+  --surface-3:#e3e8e9;
+  --border:#e2e7e8;
+  --rule:#edf0f1;
+  --control:#cdd5d7;
+  --active:#e6ebec;
+  --text:#0f1a1d;
+  --text-muted:#4b5a5f;
+  --text-faint:#5f6e73;
+  --accent:#0a6b80;
+  --accent-strong:#085768;
+  --accent-soft:#e2f1f4;
+  --accent-text:#08596b;
+  --ink:#13201f;
+  --ink-hover:#26332f;
+  --on-ink:#ffffff;
+  --success:#1f7a4c;
+  --success-soft:#dff5e8;
+  --warning:#8f4a07;
+  --warning-soft:#fdf1dc;
+  --danger:#b4232a;
+  --danger-soft:#fde9e8;
   --shadow-sm:none;
-  --shadow-md:none;
-  --radius:4px;
-  --radius-lg:4px;
+  --shadow-md:0 10px 30px -12px rgba(15,26,29,.22), 0 2px 6px rgba(15,26,29,.06);
+  --radius:6px;
+  --radius-lg:8px;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --font-ui:'Hanken Grotesk','IBM Plex Sans Arabic',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-body:'Inter Tight','IBM Plex Sans Arabic',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#12181b;
-    --surface:#181f23;
-    --surface-2:#1f272b;
-    --surface-3:#283136;
-    --border:#2b363b;
-    --text:#e6edef;
-    --text-muted:#93a6ac;
-    --text-faint:#65787f;
-    --accent:#2bd4c2;
-    --accent-strong:#5fe4d5;
-    --accent-soft:#123430;
-    --accent-text:#6fe9db;
-    --success:#3ddc91;
-    --success-soft:#122f22;
-    --warning:#f2b84b;
-    --warning-soft:#332608;
-    --danger:#f2637e;
-    --danger-soft:#331019;
-    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
-    --shadow-md:0 16px 40px -18px rgba(0,0,0,.65);
+    --bg:#0e1112;
+    --surface:#15191a;
+    --surface-2:#1b2022;
+    --surface-3:#252b2d;
+    --border:#252b2d;
+    --rule:#1f2426;
+    --control:#3a4346;
+    --active:#252c2e;
+    --text:#f1f4f4;
+    --text-muted:#b4bec0;
+    --text-faint:#939ea1;
+    --accent:#56bfd3;
+    --accent-strong:#7ccfdf;
+    --accent-soft:#12292e;
+    --accent-text:#7fd0e0;
+    --ink:#f1f4f4;
+    --ink-hover:#d9e0e1;
+    --on-ink:#0e1112;
+    --success:#4cc488;
+    --success-soft:#142a1f;
+    --warning:#f0b65a;
+    --warning-soft:#2e2310;
+    --danger:#f07a82;
+    --danger-soft:#2f1618;
+    --shadow-sm:none;
+    --shadow-md:0 16px 40px -18px rgba(0,0,0,.7);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#12181b;
-  --surface:#181f23;
-  --surface-2:#1f272b;
-  --surface-3:#283136;
-  --border:#2b363b;
-  --text:#e6edef;
-  --text-muted:#93a6ac;
-  --text-faint:#65787f;
-  --accent:#2bd4c2;
-  --accent-strong:#5fe4d5;
-  --accent-soft:#123430;
-  --accent-text:#6fe9db;
-  --success:#3ddc91;
-  --success-soft:#122f22;
-  --warning:#f2b84b;
-  --warning-soft:#332608;
-  --danger:#f2637e;
-  --danger-soft:#331019;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
-  --shadow-md:0 16px 40px -18px rgba(0,0,0,.65);
+  --bg:#0e1112;
+  --surface:#15191a;
+  --surface-2:#1b2022;
+  --surface-3:#252b2d;
+  --border:#252b2d;
+  --rule:#1f2426;
+  --control:#3a4346;
+  --active:#252c2e;
+  --text:#f1f4f4;
+  --text-muted:#b4bec0;
+  --text-faint:#939ea1;
+  --accent:#56bfd3;
+  --accent-strong:#7ccfdf;
+  --accent-soft:#12292e;
+  --accent-text:#7fd0e0;
+  --ink:#f1f4f4;
+  --ink-hover:#d9e0e1;
+  --on-ink:#0e1112;
+  --success:#4cc488;
+  --success-soft:#142a1f;
+  --warning:#f0b65a;
+  --warning-soft:#2e2310;
+  --danger:#f07a82;
+  --danger-soft:#2f1618;
+  --shadow-sm:none;
+  --shadow-md:0 16px 40px -18px rgba(0,0,0,.7);
 }
 
 /* ============ BASE ============ */
@@ -624,6 +644,174 @@ textarea.input{resize:vertical;min-height:64px;font-family:var(--font-body);}
 .lang-btn{flex:1;padding:5px 2px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;text-align:center;}
 .lang-btn.active{background:var(--surface-3);color:var(--text);}
 .lang-btn:not(.active):hover{background:var(--surface-2);}
+
+/* ============ WORKSPACE DESIGN (v2) ============
+   Operate surface: one face, tabular figures, accent on data and selection only,
+   near-black primary action, neutral grey selection in the sidebar, tight 6/8px corners. */
+body{font-family:var(--font-ui);font-size:14px;line-height:1.45;font-feature-settings:"tnum" on;caret-color:var(--accent);}
+[dir="rtl"] body{font-family:var(--font-ui);}
+h1,h2,h3,h4{font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;}
+::selection{background:color-mix(in srgb, var(--accent) 22%, transparent);}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+*{scrollbar-width:thin;scrollbar-color:var(--control) transparent;}
+.mono{font-family:var(--font-ui);font-variant-numeric:tabular-nums;}
+.quote-sheet .mono{font-family:var(--font-mono);}
+.quote-sheet{font-family:var(--font-body);}
+a{color:var(--accent-text);text-underline-offset:3px;}
+
+/* Shell: sidebar and top bar sit on the page ground, separated by one rule. */
+.sidebar{background:var(--bg);border-inline-end:1px solid var(--border);width:240px;}
+.sidebar-brand{padding:18px 16px 14px;}
+.brand-mark{background:var(--accent);border-radius:7px;}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:-.01em;}
+.brand-sub{font-size:12px;text-transform:none;letter-spacing:0;color:var(--text-faint);margin-top:0;}
+.nav{padding:2px 10px 14px;}
+.nav-group{margin-top:20px;}
+.nav-group-label{font-size:12px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-faint);padding:0 10px 6px;}
+.nav-item{font-size:14px;font-weight:400;color:var(--text-muted);padding:7px 10px;border-radius:6px;gap:10px;margin-bottom:2px;
+  transition:background-color 150ms var(--ease-out),color 150ms var(--ease-out);}
+.nav-item svg{width:16px;height:16px;opacity:.85;}
+.nav-item.active{background:var(--active);color:var(--text);font-weight:600;}
+.nav-item.active svg{opacity:1;color:var(--accent);}
+@media (hover:hover) and (pointer:fine){.nav-item:not(.active):hover{background:var(--surface-2);color:var(--text);}}
+.sidebar-foot{border-top:1px solid var(--border);}
+.theme-toggle{background:transparent;border:1px solid var(--border);border-radius:6px;transition:color 150ms var(--ease-out),background-color 150ms var(--ease-out);}
+.theme-toggle:hover{background:var(--surface-2);}
+.user-avatar{background:var(--surface-3);color:var(--text);font-weight:600;}
+.topbar{background:var(--bg);backdrop-filter:none;border-bottom:1px solid var(--border);padding:14px 32px;min-height:64px;}
+.topbar-title{font-size:20px;font-weight:600;letter-spacing:-.015em;line-height:1.25;}
+.topbar-sub{font-size:13px;color:var(--text-muted);margin-top:1px;}
+.user-chip{background:transparent;border:none;padding:4px 6px;}
+.user-chip-name{font-size:13px;font-weight:600;}
+.content{padding:24px 32px 64px;max-width:1240px;}
+
+/* Headings and sections */
+.section-head{margin:32px 0 12px;}
+.section-head h2{font-size:16px;font-weight:600;}
+.section-head .hint{font-size:13px;color:var(--text-muted);}
+.link-hint{color:var(--accent-text);cursor:pointer;font-weight:500;}
+.link-hint:hover{text-decoration:underline;}
+.card{border-radius:var(--radius-lg);border-color:var(--border);padding:20px;}
+.card-title{font-size:15px;font-weight:600;}
+.card-sub{font-size:13px;color:var(--text-muted);}
+
+/* Key figures: one strip divided by rules, label over value, ink figures. */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);}
+.kpi-strip .kpi{background:none;border:none;border-radius:0;padding:18px 20px;}
+.kpi-strip .kpi + .kpi{border-inline-start:1px solid var(--border);}
+.kpi{border-radius:var(--radius-lg);}
+.kpi-label{font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);}
+.kpi-value{font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:6px;}
+.kpi-delta{font-size:12.5px;font-weight:400;}
+.kpi-delta.flat{color:var(--text-faint);}
+@media (max-width:980px){.kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .kpi-strip .kpi:nth-child(3){border-inline-start:none;}
+  .kpi-strip .kpi:nth-child(n+3){border-top:1px solid var(--border);}}
+
+/* Calculators: plain links in one divided row. */
+.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.quick-link{display:flex;align-items:center;gap:10px;padding:16px 18px;background:none;border:none;font:inherit;color:var(--text);font-size:14px;font-weight:500;cursor:pointer;text-align:start;
+  transition:background-color 150ms var(--ease-out);}
+.quick-link + .quick-link{border-inline-start:1px solid var(--border);}
+.quick-link svg{width:16px;height:16px;color:var(--text-faint);}
+.quick-link .quick-name{flex:1;}
+.quick-link svg:last-child{width:14px;height:14px;transition:transform 160ms var(--ease-out);}
+[dir="rtl"] .quick-link svg:last-child{transform:scaleX(-1);}
+@media (hover:hover) and (pointer:fine){.quick-link:hover{background:var(--surface-2);} .quick-link:hover svg:last-child{transform:translateX(2px);color:var(--text);}}
+@media (max-width:980px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .quick-link:nth-child(3){border-inline-start:none;}
+  .quick-link:nth-child(n+3){border-top:1px solid var(--border);}}
+
+/* Tables: sentence-case grey headers, right-aligned tabular figures, rules not boxes. */
+.table-wrap{border-radius:var(--radius-lg);border-color:var(--border);}
+table{font-size:14px;}
+thead th{font-size:12.5px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);padding:11px 16px;border-bottom:1px solid var(--border);}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--rule);}
+tbody tr{transition:background-color 120ms var(--ease-out);}
+tbody tr:hover{background:var(--surface-2);}
+tbody tr.row-active{background:var(--active);}
+td.num,th.num{font-family:var(--font-ui);font-variant-numeric:tabular-nums;}
+td b{font-weight:600;}
+
+/* Status pills: pale tint, dark text of the same hue. */
+.badge{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;letter-spacing:0;line-height:18px;flex:none;white-space:nowrap;}
+.badge-dot{width:6px;height:6px;}
+.badge.neutral{background:var(--surface-3);color:var(--text-muted);}
+
+/* Buttons: near-black primary, quiet secondary, press feedback. */
+.btn{min-height:36px;padding:8px 14px;border-radius:var(--radius);border:1px solid var(--control);background:var(--surface);color:var(--text);font-weight:600;font-size:13.5px;
+  transition:background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),transform 160ms var(--ease-out);}
+.btn:hover{background:var(--surface-2);}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--ink);border-color:var(--ink);color:var(--on-ink);}
+.btn-primary:hover{background:var(--ink-hover);border-color:var(--ink-hover);color:var(--on-ink);}
+.btn-ghost{border-color:transparent;background:transparent;}
+.btn-sm{min-height:32px;padding:5px 12px;font-size:13px;border-radius:var(--radius);}
+.btn-danger-outline{border-color:color-mix(in srgb, var(--danger) 45%, transparent);color:var(--danger);}
+.btn[disabled]{opacity:.55;}
+.btn[disabled]:active{transform:none;}
+
+/* Fields: white, bordered, labelled above. */
+.field label{font-size:13px;font-weight:500;color:var(--text);}
+.field .help{font-size:12px;color:var(--text-faint);}
+.input,select.input,textarea.input{min-height:38px;padding:8px 11px;border-radius:var(--radius);border:1px solid var(--control);background:var(--surface);font-size:14px;
+  transition:border-color 150ms var(--ease-out),box-shadow 150ms var(--ease-out);}
+.input::placeholder,textarea.input::placeholder{color:var(--text-faint);}
+.input:hover,select.input:hover,textarea.input:hover{border-color:color-mix(in srgb, var(--text) 30%, var(--control));}
+.input:focus,select.input:focus,textarea.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);background:var(--surface);}
+.checkline{font-size:13.5px;color:var(--text);font-weight:400;}
+.checkline input,.chk-add input{accent-color:var(--accent);}
+
+/* Segmented choices: raised track, selected option lifts to the surface. */
+.seg{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);padding:3px;gap:3px;overflow:visible;}
+.seg button{background:transparent;border:none;border-radius:4px;font-size:13px;font-weight:500;color:var(--text-muted);padding:7px 10px;
+  transition:background-color 150ms var(--ease-out),color 150ms var(--ease-out);}
+.seg button:not(.active):hover{color:var(--text);}
+.seg button.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(15,26,29,.10),0 0 0 1px var(--border);}
+
+/* Tabs: ink label and an accent underline on the selected tab. */
+.tabs{border-bottom:1px solid var(--border);gap:4px;}
+.tab{font-size:14px;font-weight:500;color:var(--text-muted);padding:10px 12px;transition:color 150ms var(--ease-out);}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);font-weight:600;border-bottom-color:var(--accent);}
+
+/* Result figures from the calculators. */
+.metric-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.metric-tile .l{font-size:12.5px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--text-muted);}
+.metric-tile .v{font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;letter-spacing:-.015em;margin-top:4px;color:var(--text);}
+.metric-tile .u{font-size:13px;color:var(--text-faint);}
+.metric-tile .n{font-size:12.5px;color:var(--text-muted);}
+.result-card{border-radius:var(--radius-lg);}
+.result-head .ic{background:var(--surface-2);color:var(--text-muted);border-radius:6px;}
+.gauge-track{background:var(--surface-3);}
+
+/* Product lines to add. */
+.chk-add{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;padding:8px 10px;}
+.chk-add .nm{font-weight:500;}
+.chk-add .qt{border:1px solid var(--control);border-radius:4px;font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:13px;}
+.chk-add .un{color:var(--text-faint);font-size:12.5px;}
+
+/* Callouts: pale tint, readable text of the same hue, no outline. */
+.callout{border-radius:var(--radius);font-size:13.5px;line-height:1.5;color:var(--text-muted);background:var(--surface-2);border-color:transparent;}
+.callout.info{background:var(--accent-soft);color:var(--accent-text);}
+
+.empty{color:var(--text-muted);font-size:14px;}
+.empty svg{stroke:var(--text-faint);}
+.ac-item-meta{font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:12px;}
+.store-item-price,.store-stepper .n{font-family:var(--font-ui);font-variant-numeric:tabular-nums;}
+.role-btn.active{background:var(--ink);color:var(--on-ink);}
+.tut-modal{background:rgba(9,15,17,.62);}
+.tut-box{border-radius:10px;box-shadow:var(--shadow-md);}
+.tut-card:hover{border-color:var(--control);}
+
+.group-label{font-size:13px;font-weight:600;color:var(--text);letter-spacing:0;text-transform:none;}
+.section-head .link-hint{color:var(--accent-text);}
+textarea.input{font-family:var(--font-ui);}
+@media (max-width:900px){.content{padding:18px 16px 60px;}.topbar{padding:12px 16px;min-height:56px;}.topbar-title{font-size:18px;}}
+@media (prefers-reduced-motion:reduce){
+  .btn:active{transform:none;}
+  .quick-link:hover svg:last-child{transform:none;}
+}
 </style>
 
 <svg style="display:none">
@@ -5873,7 +6061,7 @@ function viewAdminPlans(){
           </div>`}
         </div>
         <div class="divider"></div>
-        <div class="card-sub" style="margin:12px 0 8px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${t('admin.plans.quotas.label')}</div>
+        <div class="card-sub group-label" style="margin:12px 0 8px;">${t('admin.plans.quotas.label')}</div>
         <div class="grid grid-2" style="gap:10px;">${quotaInputs}</div>
         ${p.role==='business' ? `<label class="checkline" style="margin-top:14px;"><input type="checkbox" class="plan-edit-cataloguewrite" data-id="${p.id}" ${p.catalogueWrite?'checked':''}> ${t('plan.feat.cataloguewrite')}</label>
         <label class="checkline" style="margin-top:8px;"><input type="checkbox" class="plan-edit-boutique" data-id="${p.id}" ${p.boutique?'checked':''}> ${t('plan.feat.boutique')}</label>` : ''}
@@ -5884,11 +6072,11 @@ function viewAdminPlans(){
   return `
     <div class="section-head"><h2>${t('admin.plans.title')}</h2><span class="hint">${t('admin.plans.hint')}</span></div>
     <div class="callout" style="margin-bottom:18px;">${ic('i-info')}<div>${t('admin.plans.edit.hint')}</div></div>
-    <div class="card-sub" style="margin:6px 0 10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${t('plan.role.particulier')}</div>
+    <div class="card-sub group-label" style="margin:6px 0 10px;">${t('plan.role.particulier')}</div>
     <div class="grid grid-2" style="margin-bottom:24px;">
       ${plansForRole('particulier').map(planCard).join('')}
     </div>
-    <div class="card-sub" style="margin:6px 0 10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${t('plan.role.business')}</div>
+    <div class="card-sub group-label" style="margin:6px 0 10px;">${t('plan.role.business')}</div>
     <div class="grid grid-2">
       ${plansForRole('business').map(planCard).join('')}
     </div>
@@ -6029,7 +6217,7 @@ function viewBusinessOverview(){
   const devisQuota = quotaOf('business','devis');
   const volumeTotal = mesClients.reduce((s,c)=> s + (parseFloat(c.volume)||0), 0);
   return `
-    <div class="grid grid-4">
+    <div class="kpi-strip">
       <div class="kpi"><div class="kpi-label">${t('biz.ov.kpi.clients')}</div><div class="kpi-value mono">${mesClients.length}</div><div class="kpi-delta flat">${t('biz.ov.kpi.clients.delta')}</div></div>
       <div class="kpi"><div class="kpi-label">${t('biz.ov.kpi.devis')}</div><div class="kpi-value mono">${devisCount}</div><div class="kpi-delta flat">${devisQuota>0? tf('biz.ov.kpi.devis.quota',{q:devisQuota}) : ''}</div></div>
       <div class="kpi"><div class="kpi-label">${t('biz.ov.kpi.plan')}</div><div class="kpi-value" style="font-size:19px;">${esc(planLabel(accountForRole('business').plan))}</div><div class="kpi-delta flat">${tf('biz.ov.kpi.plan.sub',{d:nextRenewalDate(accountForRole('business').inscription)})}</div></div>
@@ -6037,14 +6225,11 @@ function viewBusinessOverview(){
         <div class="kpi-delta flat">${t('biz.ov.kpi.volume.sub')}</div></div>
     </div>
     <div class="section-head"><h2>${t('biz.ov.access')}</h2></div>
-    <div class="grid grid-4">
+    <div class="quick-grid">
       ${[['business.etude','i-gauge','nav.business.etude'],['business.entretien','i-droplet','nav.business.entretien'],['business.hydraulique','i-wrench','nav.business.hydraulique'],['business.sterilisation','i-flask','nav.business.sterilisation']].map(([v,i,lk])=>`
-        <div class="card" style="cursor:pointer;" data-action="go" data-view="${v}">
-          <div class="result-head" style="margin-bottom:8px;"><div class="ic">${ic(i)}</div><div class="card-title">${t(lk)}</div></div>
-          <div class="card-sub">${t('biz.ov.openmodule')}</div>
-        </div>`).join('')}
+        <button class="quick-link" data-action="go" data-view="${v}">${ic(i)}<span class="quick-name">${t(lk)}</span>${ic('i-chevron')}</button>`).join('')}
     </div>
-    <div class="section-head"><h2>${t('biz.ov.recentclients')}</h2>${mesClients.length? `<span class="hint" data-action="go" data-view="business.clients" style="cursor:pointer;text-decoration:underline;">${t('biz.ov.seeall')}</span>`:''}</div>
+    <div class="section-head"><h2>${t('biz.ov.recentclients')}</h2>${mesClients.length? `<span class="hint link-hint" data-action="go" data-view="business.clients">${t('biz.ov.seeall')}</span>`:''}</div>
     ${mesClients.length? `<div class="table-wrap"><table>
       <thead><tr><th>${t('th.nom')}</th><th>${t('th.ville')}</th><th>${t('th.volume')}</th><th>${t('th.statut')}</th></tr></thead>
       <tbody>${mesClients.slice(0,6).map(p=>`<tr style="cursor:pointer;" data-action="go" data-view="business.clients"><td><b>${esc(p.nom)}</b></td><td>${esc(p.ville)}</td><td class="num mono">${p.volume||'—'} m³</td><td>${statBadge(p.statut)}</td></tr>`).join('')}</tbody>
@@ -6690,7 +6875,7 @@ function viewCatalogue(){
           </tr>`;
       const thead = `<thead><tr><th>${t('th.produit')}</th><th>${t('th.categorie')}</th><th>${t('catalogue.unit')}</th><th class="num">${tc('th.prix')}</th><th></th></tr></thead>`;
       const openIdx = rows.findIndex(c=>c.id===STATE.catalogueDetailId);
-      const header = `<div class="card-sub" style="margin:18px 0 6px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${esc(cat)}</div>`;
+      const header = `<div class="card-sub group-label" style="margin:18px 0 6px;">${esc(cat)}</div>`;
       if(openIdx<0) return `${header}<div class="table-wrap"><table>${thead}<tbody>${rows.map(catRow).join('')}</tbody></table></div>`;
       const before = rows.slice(0, openIdx+1), after = rows.slice(openIdx+1);
       return `${header}
@@ -6939,7 +7124,7 @@ function viewBoutique(){
       ${STATE.catalogue.length? `<button class="btn btn-sm" data-action="boutique-select-all">${selected.length>=STATE.catalogue.length? ic('i-x')+' '+t('boutique.selectnone') : ic('i-check')+' '+t('boutique.selectall')}</button>`:''}
     </div>
     ${STATE.catalogue.length? STATE.categories.filter(c=>counts[c]>0).map(cat=>`
-      <div class="card-sub" style="margin:14px 0 6px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${esc(cat)}</div>
+      <div class="card-sub group-label" style="margin:14px 0 6px;">${esc(cat)}</div>
       ${STATE.catalogue.filter(c=>c.cat===cat).map(c=>{
         const cfg = s.produits[c.id];
         return `<div class="chk-add" style="flex-wrap:wrap;gap:8px;">
@@ -7029,7 +7214,7 @@ function renderPublicStore(data, focusInfo){
         </div>
         ${items.length? `<div style="max-width:1080px;margin:0 auto;padding:0 32px 56px;">
           ${cats.map(cat=>`
-            <div class="card-sub" style="margin:20px 0 8px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">${esc(cat)}</div>
+            <div class="card-sub group-label" style="margin:20px 0 8px;">${esc(cat)}</div>
             <div class="features-grid" style="padding:0;">
               ${items.filter(it=>(it.c||'—')===cat).map(it=>{
                 const idx = items.indexOf(it);
@@ -8063,7 +8248,7 @@ function viewAccountSettings(role){
       </div>
       <div class="field"><label>${t('account.identity.adresse')}</label><input class="input" id="acct-biz-adr" value="${esc(biz.adresse||'')}" placeholder="${t('account.identity.adresse.ph')}"></div>
       <div class="field"><label>${t('account.identity.preview')}</label>
-        <div class="callout" style="font-family:var(--font-mono);font-size:11.5px;">${esc(composeFooter({...biz, email:acc.email}))||'—'}</div></div>
+        <div class="callout" style="font-size:12.5px;">${esc(composeFooter({...biz, email:acc.email}))||'—'}</div></div>
       <button class="btn btn-primary" style="align-self:flex-start;" data-action="save-identity">${ic('i-check')} ${t('account.save')}</button>
     </div>
   </div>` : part ? `
